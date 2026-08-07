@@ -293,3 +293,7 @@ export function nextOpponent(s: GameState): string {
   const idx = s.table.find((r) => r.club === s.club)?.played ?? 0;
   return pool[idx % pool.length] as string;
 }
+
+export function sortTablePosition(s: GameState): number {
+  return sortTable(s.table).findIndex((r) => r.club === s.club) + 1;
+}

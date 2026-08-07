@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DynastyRouteImport } from './routes/dynasty'
 import { Route as MatchRouteImport } from './routes/match'
 import { Route as SquadRouteImport } from './routes/squad'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DynastyRoute = DynastyRouteImport.update({
+  id: '/dynasty',
+  path: '/dynasty',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MatchRoute = MatchRouteImport.update({
@@ -31,30 +37,34 @@ const SquadRoute = SquadRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dynasty': typeof DynastyRoute
   '/match': typeof MatchRoute
   '/squad': typeof SquadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dynasty': typeof DynastyRoute
   '/match': typeof MatchRoute
   '/squad': typeof SquadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dynasty': typeof DynastyRoute
   '/match': typeof MatchRoute
   '/squad': typeof SquadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/match' | '/squad'
+  fullPaths: '/' | '/dynasty' | '/match' | '/squad'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/match' | '/squad'
-  id: '__root__' | '/' | '/match' | '/squad'
+  to: '/' | '/dynasty' | '/match' | '/squad'
+  id: '__root__' | '/' | '/dynasty' | '/match' | '/squad'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DynastyRoute: typeof DynastyRoute
   MatchRoute: typeof MatchRoute
   SquadRoute: typeof SquadRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dynasty': {
+      id: '/dynasty'
+      path: '/dynasty'
+      fullPath: '/dynasty'
+      preLoaderRoute: typeof DynastyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/match': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DynastyRoute: DynastyRoute,
   MatchRoute: MatchRoute,
   SquadRoute: SquadRoute,
 }
