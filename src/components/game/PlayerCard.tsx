@@ -30,13 +30,24 @@ export function PlayerCard({
   onClick?: () => void;
 }) {
   const ovr = overall(player);
-  const Wrapper = onClick ? "button" : "div";
   return (
-    <Wrapper
+    <div
       onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       className={cn(
         "flex w-full flex-col gap-3 rounded-2xl bg-card p-4 text-left ring-1 ring-border transition-all",
-        onClick && "hover:ring-primary/60",
+        onClick && "cursor-pointer hover:ring-primary/60",
         active && "ring-2 ring-primary shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_15%,transparent)]",
       )}
     >
@@ -64,6 +75,6 @@ export function PlayerCard({
         <Bar label="STA" value={player.stamina} />
       </div>
       {footer}
-    </Wrapper>
+    </div>
   );
 }

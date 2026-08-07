@@ -7,6 +7,7 @@ import {
   makeTable,
   overall,
   sortTable,
+  withSeed,
 } from "./data";
 import type { GameState, MatchResult, PlayerCard, TableRow } from "./types";
 
@@ -14,6 +15,7 @@ const KEY = "football-dynasty:v1";
 const VERSION = 1;
 
 export function createInitialState(): GameState {
+  return withSeed(20260807, () => {
   const squad = makeStartingSquad();
   return {
     version: VERSION,
@@ -32,6 +34,7 @@ export function createInitialState(): GameState {
     settings: { difficulty: "NORMAL", matchMinutes: 3, sound: true, forceTouchControls: false },
     lastResult: null,
   };
+  });
 }
 
 let state: GameState = createInitialState();

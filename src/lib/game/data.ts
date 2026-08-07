@@ -38,7 +38,31 @@ export const POSITIONS: Position[] = ["GK", "CB", "LB", "RB", "CDM", "CM", "CAM"
 let seq = 0;
 const uid = () => `p${Date.now().toString(36)}${(seq++).toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`;
 
-const rnd = (min: number, max: number) => Math.floor(min + Math.random() * (max - min + 1));
+let rng: () => number = Math.random;
+
+function mulberry32(seed: number) {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Deterministic generation so SSR and client hydration produce identical squads. */
+export function withSeed<T>(seed: number, fn: () => T): T {
+  const prev = rng;
+  rng = mulberry32(seed);
+  try {
+    return fn();
+  } finally {
+    rng = prev;
+  }
+}
+
+const rnd = (min: number, max: number) => Math.floor(min + rng() * (max - min + 1));
 const pick = <T,>(arr: readonly T[]): T => arr[rnd(0, arr.length - 1)] as T;
 
 export function overall(p: PlayerCard): number {
