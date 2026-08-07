@@ -49,7 +49,7 @@ export function Joystick({ onChange }: { onChange: (dx: number, dy: number) => v
       role="application"
     >
       <div
-        className="absolute left-1/2 top-1/2 size-14 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/80 ring-2 ring-primary"
+        className="absolute left-1/2 top-1/2 size-14 rounded-full bg-primary/80 ring-2 ring-primary"
         style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
       />
     </div>
