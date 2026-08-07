@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DynastyRouteImport } from './routes/dynasty'
+import { Route as LeagueRouteImport } from './routes/league'
 import { Route as MatchRouteImport } from './routes/match'
 import { Route as SquadRouteImport } from './routes/squad'
 import { Route as TransfersRouteImport } from './routes/transfers'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const DynastyRoute = DynastyRouteImport.update({
   id: '/dynasty',
   path: '/dynasty',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeagueRoute = LeagueRouteImport.update({
+  id: '/league',
+  path: '/league',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MatchRoute = MatchRouteImport.update({
@@ -44,6 +50,7 @@ const TransfersRoute = TransfersRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dynasty': typeof DynastyRoute
+  '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
   '/squad': typeof SquadRoute
   '/transfers': typeof TransfersRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dynasty': typeof DynastyRoute
+  '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
   '/squad': typeof SquadRoute
   '/transfers': typeof TransfersRoute
@@ -59,21 +67,30 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dynasty': typeof DynastyRoute
+  '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
   '/squad': typeof SquadRoute
   '/transfers': typeof TransfersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dynasty' | '/match' | '/squad' | '/transfers'
+  fullPaths: '/' | '/dynasty' | '/league' | '/match' | '/squad' | '/transfers'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dynasty' | '/match' | '/squad' | '/transfers'
-  id: '__root__' | '/' | '/dynasty' | '/match' | '/squad' | '/transfers'
+  to: '/' | '/dynasty' | '/league' | '/match' | '/squad' | '/transfers'
+  id:
+    | '__root__'
+    | '/'
+    | '/dynasty'
+    | '/league'
+    | '/match'
+    | '/squad'
+    | '/transfers'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DynastyRoute: typeof DynastyRoute
+  LeagueRoute: typeof LeagueRoute
   MatchRoute: typeof MatchRoute
   SquadRoute: typeof SquadRoute
   TransfersRoute: typeof TransfersRoute
@@ -93,6 +110,13 @@ declare module '@tanstack/react-router' {
       path: '/dynasty'
       fullPath: '/dynasty'
       preLoaderRoute: typeof DynastyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/league': {
+      id: '/league'
+      path: '/league'
+      fullPath: '/league'
+      preLoaderRoute: typeof LeagueRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/match': {
@@ -122,6 +146,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DynastyRoute: DynastyRoute,
+  LeagueRoute: LeagueRoute,
   MatchRoute: MatchRoute,
   SquadRoute: SquadRoute,
   TransfersRoute: TransfersRoute,
