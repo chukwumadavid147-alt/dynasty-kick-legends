@@ -29,14 +29,14 @@ export const Route = createFileRoute("/")({
   component: MainMenu,
 });
 
-const ITEMS = [
+const ITEMS: Array<{ to: string; label: string; icon: typeof Play; hint: string; big?: boolean }> = [
   { to: "/match", label: "Play Match", icon: Play, hint: "Kick off against a rival club", big: true },
   { to: "/dynasty", label: "Dynasty Mode", icon: Crown, hint: "Club hub, stadium & season" },
   { to: "/squad", label: "My Squad", icon: Users, hint: "Lineup, formation & upgrades" },
   { to: "/transfers", label: "Transfer Market", icon: ShoppingCart, hint: "Sign new talent" },
   { to: "/league", label: "League Table", icon: ListOrdered, hint: "Standings & form" },
   { to: "/settings", label: "Settings", icon: SettingsIcon, hint: "Difficulty & controls" },
-] as const;
+];
 
 function MainMenu() {
   const game = useGame();
