@@ -39,6 +39,7 @@ let seq = 0;
 const uid = () => `p${Date.now().toString(36)}${(seq++).toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`;
 
 const rnd = (min: number, max: number) => Math.floor(min + Math.random() * (max - min + 1));
+const pick = <T,>(arr: readonly T[]): T => arr[rnd(0, arr.length - 1)] as T;
 
 export function overall(p: PlayerCard): number {
   const w =
@@ -63,7 +64,7 @@ export function makePlayer(position: Position, base: number, name?: string): Pla
   const def = position === "CB" || position === "LB" || position === "RB" || position === "GK";
   const p: PlayerCard = {
     id: uid(),
-    name: name ?? `${FIRST[rnd(0, FIRST.length - 1)]} ${LAST[rnd(0, LAST.length - 1)]}`,
+    name: name ?? `${pick(FIRST)} ${pick(LAST)}`,
     position,
     speed: position === "GK" ? j(-8) : j(attack ? 6 : 0),
     shooting: j(attack ? 8 : def ? -14 : 0),
@@ -99,7 +100,7 @@ export function makeStartingSquad(): PlayerCard[] {
 
 export function makeMarket(count = 12, base = 70): PlayerCard[] {
   return Array.from({ length: count }, () =>
-    makePlayer(POSITIONS[rnd(0, POSITIONS.length - 1)], base + rnd(-8, 12)),
+    makePlayer(pick(POSITIONS), base + rnd(-8, 12)),
   );
 }
 
