@@ -265,21 +265,28 @@ export const actions = {
   recordMatch(result: MatchResult) {
     setState((s) => {
       const table = simulateRound(s.table, s.club, result);
-      const xi = new Set(s.lineup);
+      const xi = new Set(lineupPlayers(s).map((p) => p.id));
       const squad = s.squad.map((p) => {
-        if (!xi.has(p.id)) return p;
+        const clampF = (v: number) => Math.max(35, Math.min(100, Math.round(v)));
+        if (!xi.has(p.id)) {
+          return { ...p, fitness: clampF(p.fitness + 12) };
+        }
+        const drop = 16 - (p.stamina - 60) * 0.12;
+        const fitness = clampF(p.fitness - Math.max(6, drop));
         const xp = p.xp + result.xp;
         const levels = Math.floor(xp / 100);
-        if (levels <= 0) return { ...p, xp };
+        if (levels <= 0) return { ...p, xp, fitness };
         return {
           ...p,
           xp: xp % 100,
+          fitness,
           level: p.level + levels,
           shooting: Math.min(99, p.shooting + levels),
           passing: Math.min(99, p.passing + levels),
           defense: Math.min(99, p.defense + levels),
         };
       });
+
       return {
         ...s,
         coins: s.coins + result.coins,
