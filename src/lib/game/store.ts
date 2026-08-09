@@ -1,7 +1,10 @@
 import { useSyncExternalStore } from "react";
 import {
+  ATT_POS,
   CLUBS,
+  DEF_POS,
   LEAGUES,
+  MID_POS,
   makeMarket,
   makeStartingSquad,
   makeTable,
@@ -9,10 +12,10 @@ import {
   sortTable,
   withSeed,
 } from "./data";
-import type { GameState, MatchResult, PlayerCard, TableRow } from "./types";
+import type { GameState, MatchResult, PlayerCard, Position, TableRow } from "./types";
 
-const KEY = "football-dynasty:v1";
-const VERSION = 1;
+const KEY = "football-dynasty:v2";
+const VERSION = 2;
 
 export function createInitialState(): GameState {
   return withSeed(20260807, () => {
@@ -28,7 +31,8 @@ export function createInitialState(): GameState {
     trophies: 0,
     formation: "4-3-3",
     squad,
-    lineup: squad.slice(0, 7).map((p) => p.id),
+    lineup: squad.slice(0, 11).map((p) => p.id),
+    captainId: squad[10]?.id ?? null,
     market: makeMarket(),
     table: makeTable("Dynasty FC"),
     settings: { difficulty: "NORMAL", matchMinutes: 3, sound: true, forceTouchControls: false },
@@ -36,6 +40,7 @@ export function createInitialState(): GameState {
   };
   });
 }
+
 
 let state: GameState = createInitialState();
 let hydrated = false;
