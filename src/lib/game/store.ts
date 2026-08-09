@@ -311,6 +311,8 @@ export const actions = {
         coins: s.coins + (champion ? 2000 : 500),
         table: makeTable(s.club),
         market: makeMarket(12, 66 + tier * 4),
+        squad: s.squad.map((p) => ({ ...p, fitness: 100, age: p.age + 1 })),
+
       };
     });
   },
