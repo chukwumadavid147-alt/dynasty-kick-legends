@@ -104,18 +104,65 @@ export function useHydrated(): boolean {
 
 /* ---------- derived ---------- */
 
+export const XI_SIZE = 11;
+
+/** The starting XI, padded from the bench when the saved lineup is short. */
 export function lineupPlayers(s: GameState): PlayerCard[] {
   const byId = new Map(s.squad.map((p) => [p.id, p]));
   const picked = s.lineup.map((id) => byId.get(id)).filter((p): p is PlayerCard => Boolean(p));
-  if (picked.length >= 7) return picked.slice(0, 7);
+  if (picked.length >= XI_SIZE) return picked.slice(0, XI_SIZE);
   const rest = s.squad.filter((p) => !picked.includes(p));
-  return [...picked, ...rest].slice(0, 7);
+  return [...picked, ...rest].slice(0, XI_SIZE);
+}
+
+export function benchPlayers(s: GameState): PlayerCard[] {
+  const xi = new Set(lineupPlayers(s).map((p) => p.id));
+  return s.squad.filter((p) => !xi.has(p.id));
+}
+
+/** Fitness-adjusted effectiveness: 100 fitness = full rating, 50 = ~-10%. */
+export function fitnessFactor(p: PlayerCard): number {
+  return 0.8 + (Math.max(0, Math.min(100, p.fitness)) / 100) * 0.2;
+}
+
+export function effectiveOverall(p: PlayerCard): number {
+  return Math.round(overall(p) * fitnessFactor(p));
+}
+
+function avg(list: PlayerCard[]): number {
+  if (!list.length) return 0;
+  return Math.round(list.reduce((sum, p) => sum + effectiveOverall(p), 0) / list.length);
+}
+
+function group(s: GameState, positions: Position[]): PlayerCard[] {
+  return lineupPlayers(s).filter((p) => positions.includes(p.position));
+}
+
+export function defenceRating(s: GameState): number {
+  return avg(group(s, DEF_POS));
+}
+export function midfieldRating(s: GameState): number {
+  return avg(group(s, MID_POS));
+}
+export function attackRating(s: GameState): number {
+  return avg(group(s, ATT_POS));
 }
 
 export function teamRating(s: GameState): number {
+  return avg(lineupPlayers(s));
+}
+
+/** Seven players actually sent onto the 2D pitch, drawn from the starting XI. */
+export function matchLineup(s: GameState): PlayerCard[] {
   const xi = lineupPlayers(s);
-  if (!xi.length) return 0;
-  return Math.round(xi.reduce((sum, p) => sum + overall(p), 0) / xi.length);
+  const gk = xi.find((p) => p.position === "GK") ?? xi[0];
+  const rest = xi.filter((p) => p !== gk);
+  const rank = (p: PlayerCard) => DEF_POS.indexOf(p.position) >= 0 ? 0 : MID_POS.indexOf(p.position) >= 0 ? 1 : 2;
+  const outfield = [...rest]
+    .sort((a, b) => effectiveOverall(b) - effectiveOverall(a))
+    .slice(0, 6)
+    .sort((a, b) => rank(a) - rank(b));
+  return gk ? [gk, ...outfield] : outfield;
 }
 
 export function upgradeCost(p: PlayerCard): number {
@@ -128,14 +175,22 @@ export const actions = {
   setFormation(formation: GameState["formation"]) {
     setState((s) => ({ ...s, formation }));
   },
-  toggleLineup(id: string) {
+  /** Swap a starting player with a bench player (or move a slot to another player). */
+  substitute(outId: string, inId: string) {
     setState((s) => {
-      const inLineup = s.lineup.includes(id);
-      if (inLineup) return { ...s, lineup: s.lineup.filter((x) => x !== id) };
-      if (s.lineup.length >= 7) return s;
-      return { ...s, lineup: [...s.lineup, id] };
+      const lineup = lineupPlayers(s).map((p) => p.id);
+      const idx = lineup.indexOf(outId);
+      if (idx < 0 || lineup.includes(inId)) return s;
+      if (!s.squad.some((p) => p.id === inId)) return s;
+      const next = [...lineup];
+      next[idx] = inId;
+      return { ...s, lineup: next };
     });
   },
+  setCaptain(id: string) {
+    setState((s) => (s.squad.some((p) => p.id === id) ? { ...s, captainId: id } : s));
+  },
+
   upgradePlayer(id: string) {
     setState((s) => {
       const player = s.squad.find((p) => p.id === id);
