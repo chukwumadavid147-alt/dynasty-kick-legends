@@ -16,7 +16,13 @@ export interface PlayerCard {
   level: number;
   xp: number;
   price: number;
+  age: number;
+  /** 0-100 match condition; low fitness reduces effectiveness in matches. */
+  fitness: number;
+  /** Shirt number */
+  number: number;
 }
+
 
 export interface TableRow {
   club: string;

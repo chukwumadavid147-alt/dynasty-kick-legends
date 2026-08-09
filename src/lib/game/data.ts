@@ -82,7 +82,12 @@ export function priceFor(p: PlayerCard): number {
   return Math.round((Math.pow(Math.max(ovr - 45, 5), 2.1) * 1.6 + 250) / 50) * 50;
 }
 
-export function makePlayer(position: Position, base: number, name?: string): PlayerCard {
+export function makePlayer(
+  position: Position,
+  base: number,
+  name?: string,
+  shirt?: number,
+): PlayerCard {
   const j = (bias = 0) => Math.max(35, Math.min(99, base + bias + rnd(-6, 6)));
   const attack = position === "ST" || position === "LW" || position === "RW";
   const def = position === "CB" || position === "LB" || position === "RB" || position === "GK";
@@ -98,6 +103,9 @@ export function makePlayer(position: Position, base: number, name?: string): Pla
     level: 1,
     xp: 0,
     price: 0,
+    age: rnd(17, 34),
+    fitness: rnd(82, 100),
+    number: shirt ?? rnd(2, 45),
   };
   p.price = priceFor(p);
   return p;
@@ -109,17 +117,23 @@ const STARTER_NAMES: Array<[string, Position]> = [
   ["Samir Okoro", "CB"],
   ["Tom Rivers", "LB"],
   ["Owen Marsh", "RB"],
-  ["Leo Grant", "CM"],
+  ["Leo Grant", "CDM"],
   ["Isaac Frost", "CM"],
   ["Nathan Hale", "CAM"],
   ["Jayden Cole", "RW"],
   ["Ruben Sable", "LW"],
   ["Marcus Vale", "ST"],
   ["Felix Nolan", "ST"],
+  ["Andre Costa", "GK"],
+  ["Bruno Adler", "CB"],
+  ["Kai Mensah", "CM"],
+  ["Milo Byrne", "LW"],
+  ["Hugo Duarte", "RB"],
+  ["Emre Falk", "CM"],
 ];
 
 export function makeStartingSquad(): PlayerCard[] {
-  return STARTER_NAMES.map(([name, pos]) => makePlayer(pos, 64, name));
+  return STARTER_NAMES.map(([name, pos], i) => makePlayer(pos, 64, name, i + 1));
 }
 
 export function makeMarket(count = 12, base = 70): PlayerCard[] {
@@ -127,6 +141,7 @@ export function makeMarket(count = 12, base = 70): PlayerCard[] {
     makePlayer(pick(POSITIONS), base + rnd(-8, 12)),
   );
 }
+
 
 export function makeTable(club: string): TableRow[] {
   const clubs = [club, ...CLUBS.filter((c) => c !== club)].slice(0, 10);
