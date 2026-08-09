@@ -87,7 +87,7 @@ function MatchPage() {
 
     const engine = new MatchEngine(
       canvas,
-      lineupPlayers(game),
+      matchLineup(game),
       game.formation,
       difficulty,
       game.settings.matchMinutes * 60,
