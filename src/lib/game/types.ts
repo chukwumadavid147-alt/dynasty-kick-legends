@@ -53,6 +53,7 @@ export interface GameState {
   formation: FormationName;
   squad: PlayerCard[];
   lineup: string[];
+  captainId: string | null;
   market: PlayerCard[];
   table: TableRow[];
   settings: Settings;
