@@ -98,7 +98,9 @@ export class MatchEngine {
     const mk = (slot: { x: number; y: number }, p: PlayerCard | undefined, home: boolean, num: number): Actor => {
       const hx = home ? slot.x * W : W - slot.x * W;
       const hy = home ? slot.y * H : H - slot.y * H;
-      const base = p ?? { speed: 68, shooting: 66, passing: 66, defense: 66 };
+      const base = p ?? { speed: 68, shooting: 66, passing: 66, defense: 66, fitness: 100, number: num };
+      // low fitness slightly reduces effectiveness during the match
+      const f = 0.8 + Math.max(0, Math.min(100, base.fitness ?? 100)) / 500;
       return {
         x: hx,
         y: hy,
@@ -108,18 +110,19 @@ export class MatchEngine {
         gk: slot.x < 0.1,
         hx,
         hy,
-        spd: base.speed,
-        sht: base.shooting,
-        pas: base.passing,
-        def: base.defense,
+        spd: base.speed * f,
+        sht: base.shooting * f,
+        pas: base.passing * f,
+        def: base.defense * f,
         cooldown: 0,
-        num,
+        num: p?.number ?? num,
       };
     };
     this.actors = [];
     slots.forEach((s, i) => this.actors.push(mk(s, this.lineup[i], true, i + 1)));
     slots.forEach((s, i) => this.actors.push(mk(s, undefined, false, i + 1)));
   }
+
 
   private kickoff(homeStart: boolean) {
     for (const a of this.actors) {

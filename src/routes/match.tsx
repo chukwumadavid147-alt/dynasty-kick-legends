@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { GameShell } from "@/components/game/GameShell";
 import { ActionButton, Joystick } from "@/components/game/TouchControls";
 import { MatchEngine, type Input } from "@/lib/game/engine";
-import { actions, hydrate, lineupPlayers, nextOpponent, useGame } from "@/lib/game/store";
+import { actions, hydrate, matchLineup, nextOpponent, useGame } from "@/lib/game/store";
 import type { Difficulty, MatchResult } from "@/lib/game/types";
 
 export const Route = createFileRoute("/match")({
@@ -87,7 +87,7 @@ function MatchPage() {
 
     const engine = new MatchEngine(
       canvas,
-      lineupPlayers(game),
+      matchLineup(game),
       game.formation,
       difficulty,
       game.settings.matchMinutes * 60,

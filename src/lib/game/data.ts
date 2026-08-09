@@ -82,7 +82,12 @@ export function priceFor(p: PlayerCard): number {
   return Math.round((Math.pow(Math.max(ovr - 45, 5), 2.1) * 1.6 + 250) / 50) * 50;
 }
 
-export function makePlayer(position: Position, base: number, name?: string): PlayerCard {
+export function makePlayer(
+  position: Position,
+  base: number,
+  name?: string,
+  shirt?: number,
+): PlayerCard {
   const j = (bias = 0) => Math.max(35, Math.min(99, base + bias + rnd(-6, 6)));
   const attack = position === "ST" || position === "LW" || position === "RW";
   const def = position === "CB" || position === "LB" || position === "RB" || position === "GK";
@@ -98,6 +103,9 @@ export function makePlayer(position: Position, base: number, name?: string): Pla
     level: 1,
     xp: 0,
     price: 0,
+    age: rnd(17, 34),
+    fitness: rnd(82, 100),
+    number: shirt ?? rnd(2, 45),
   };
   p.price = priceFor(p);
   return p;
@@ -109,17 +117,23 @@ const STARTER_NAMES: Array<[string, Position]> = [
   ["Samir Okoro", "CB"],
   ["Tom Rivers", "LB"],
   ["Owen Marsh", "RB"],
-  ["Leo Grant", "CM"],
+  ["Leo Grant", "CDM"],
   ["Isaac Frost", "CM"],
   ["Nathan Hale", "CAM"],
   ["Jayden Cole", "RW"],
   ["Ruben Sable", "LW"],
   ["Marcus Vale", "ST"],
   ["Felix Nolan", "ST"],
+  ["Andre Costa", "GK"],
+  ["Bruno Adler", "CB"],
+  ["Kai Mensah", "CM"],
+  ["Milo Byrne", "LW"],
+  ["Hugo Duarte", "RB"],
+  ["Emre Falk", "CM"],
 ];
 
 export function makeStartingSquad(): PlayerCard[] {
-  return STARTER_NAMES.map(([name, pos]) => makePlayer(pos, 64, name));
+  return STARTER_NAMES.map(([name, pos], i) => makePlayer(pos, 64, name, i + 1));
 }
 
 export function makeMarket(count = 12, base = 70): PlayerCard[] {
@@ -127,6 +141,7 @@ export function makeMarket(count = 12, base = 70): PlayerCard[] {
     makePlayer(pick(POSITIONS), base + rnd(-8, 12)),
   );
 }
+
 
 export function makeTable(club: string): TableRow[] {
   const clubs = [club, ...CLUBS.filter((c) => c !== club)].slice(0, 10);
@@ -181,3 +196,67 @@ export const FORMATIONS: Record<FormationName, Array<{ x: number; y: number; rol
 };
 
 export const FORMATION_NAMES = Object.keys(FORMATIONS) as FormationName[];
+
+/**
+ * Full 11-slot formations used by the squad screen.
+ * x: 0 (own goal) -> 1 (opponent goal), y: 0 (top) -> 1 (bottom)
+ */
+export const FORMATIONS_XI: Record<FormationName, Array<{ x: number; y: number; role: Position }>> = {
+  "4-3-3": [
+    { x: 0.05, y: 0.5, role: "GK" },
+    { x: 0.22, y: 0.12, role: "LB" },
+    { x: 0.2, y: 0.38, role: "CB" },
+    { x: 0.2, y: 0.62, role: "CB" },
+    { x: 0.22, y: 0.88, role: "RB" },
+    { x: 0.45, y: 0.25, role: "CM" },
+    { x: 0.42, y: 0.5, role: "CDM" },
+    { x: 0.45, y: 0.75, role: "CM" },
+    { x: 0.75, y: 0.15, role: "LW" },
+    { x: 0.8, y: 0.5, role: "ST" },
+    { x: 0.75, y: 0.85, role: "RW" },
+  ],
+  "4-4-2": [
+    { x: 0.05, y: 0.5, role: "GK" },
+    { x: 0.22, y: 0.12, role: "LB" },
+    { x: 0.2, y: 0.38, role: "CB" },
+    { x: 0.2, y: 0.62, role: "CB" },
+    { x: 0.22, y: 0.88, role: "RB" },
+    { x: 0.5, y: 0.12, role: "LW" },
+    { x: 0.46, y: 0.38, role: "CM" },
+    { x: 0.46, y: 0.62, role: "CM" },
+    { x: 0.5, y: 0.88, role: "RW" },
+    { x: 0.78, y: 0.36, role: "ST" },
+    { x: 0.78, y: 0.64, role: "ST" },
+  ],
+  "3-5-2": [
+    { x: 0.05, y: 0.5, role: "GK" },
+    { x: 0.2, y: 0.28, role: "CB" },
+    { x: 0.18, y: 0.5, role: "CB" },
+    { x: 0.2, y: 0.72, role: "CB" },
+    { x: 0.48, y: 0.1, role: "LB" },
+    { x: 0.42, y: 0.34, role: "CM" },
+    { x: 0.4, y: 0.5, role: "CDM" },
+    { x: 0.42, y: 0.66, role: "CM" },
+    { x: 0.48, y: 0.9, role: "RB" },
+    { x: 0.78, y: 0.36, role: "ST" },
+    { x: 0.78, y: 0.64, role: "ST" },
+  ],
+  "4-2-3-1": [
+    { x: 0.05, y: 0.5, role: "GK" },
+    { x: 0.22, y: 0.12, role: "LB" },
+    { x: 0.2, y: 0.38, role: "CB" },
+    { x: 0.2, y: 0.62, role: "CB" },
+    { x: 0.22, y: 0.88, role: "RB" },
+    { x: 0.4, y: 0.36, role: "CDM" },
+    { x: 0.4, y: 0.64, role: "CDM" },
+    { x: 0.65, y: 0.14, role: "LW" },
+    { x: 0.62, y: 0.5, role: "CAM" },
+    { x: 0.65, y: 0.86, role: "RW" },
+    { x: 0.85, y: 0.5, role: "ST" },
+  ],
+};
+
+/** Position groups used for attack / midfield / defence ratings. */
+export const DEF_POS: Position[] = ["GK", "CB", "LB", "RB"];
+export const MID_POS: Position[] = ["CDM", "CM", "CAM"];
+export const ATT_POS: Position[] = ["LW", "RW", "ST"];

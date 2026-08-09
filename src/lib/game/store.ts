@@ -1,7 +1,10 @@
 import { useSyncExternalStore } from "react";
 import {
+  ATT_POS,
   CLUBS,
+  DEF_POS,
   LEAGUES,
+  MID_POS,
   makeMarket,
   makeStartingSquad,
   makeTable,
@@ -9,10 +12,10 @@ import {
   sortTable,
   withSeed,
 } from "./data";
-import type { GameState, MatchResult, PlayerCard, TableRow } from "./types";
+import type { GameState, MatchResult, PlayerCard, Position, TableRow } from "./types";
 
-const KEY = "football-dynasty:v1";
-const VERSION = 1;
+const KEY = "football-dynasty:v2";
+const VERSION = 2;
 
 export function createInitialState(): GameState {
   return withSeed(20260807, () => {
@@ -28,7 +31,8 @@ export function createInitialState(): GameState {
     trophies: 0,
     formation: "4-3-3",
     squad,
-    lineup: squad.slice(0, 7).map((p) => p.id),
+    lineup: squad.slice(0, 11).map((p) => p.id),
+    captainId: squad[10]?.id ?? null,
     market: makeMarket(),
     table: makeTable("Dynasty FC"),
     settings: { difficulty: "NORMAL", matchMinutes: 3, sound: true, forceTouchControls: false },
@@ -36,6 +40,7 @@ export function createInitialState(): GameState {
   };
   });
 }
+
 
 let state: GameState = createInitialState();
 let hydrated = false;
@@ -99,18 +104,65 @@ export function useHydrated(): boolean {
 
 /* ---------- derived ---------- */
 
+export const XI_SIZE = 11;
+
+/** The starting XI, padded from the bench when the saved lineup is short. */
 export function lineupPlayers(s: GameState): PlayerCard[] {
   const byId = new Map(s.squad.map((p) => [p.id, p]));
   const picked = s.lineup.map((id) => byId.get(id)).filter((p): p is PlayerCard => Boolean(p));
-  if (picked.length >= 7) return picked.slice(0, 7);
+  if (picked.length >= XI_SIZE) return picked.slice(0, XI_SIZE);
   const rest = s.squad.filter((p) => !picked.includes(p));
-  return [...picked, ...rest].slice(0, 7);
+  return [...picked, ...rest].slice(0, XI_SIZE);
+}
+
+export function benchPlayers(s: GameState): PlayerCard[] {
+  const xi = new Set(lineupPlayers(s).map((p) => p.id));
+  return s.squad.filter((p) => !xi.has(p.id));
+}
+
+/** Fitness-adjusted effectiveness: 100 fitness = full rating, 50 = ~-10%. */
+export function fitnessFactor(p: PlayerCard): number {
+  return 0.8 + (Math.max(0, Math.min(100, p.fitness)) / 100) * 0.2;
+}
+
+export function effectiveOverall(p: PlayerCard): number {
+  return Math.round(overall(p) * fitnessFactor(p));
+}
+
+function avg(list: PlayerCard[]): number {
+  if (!list.length) return 0;
+  return Math.round(list.reduce((sum, p) => sum + effectiveOverall(p), 0) / list.length);
+}
+
+function group(s: GameState, positions: Position[]): PlayerCard[] {
+  return lineupPlayers(s).filter((p) => positions.includes(p.position));
+}
+
+export function defenceRating(s: GameState): number {
+  return avg(group(s, DEF_POS));
+}
+export function midfieldRating(s: GameState): number {
+  return avg(group(s, MID_POS));
+}
+export function attackRating(s: GameState): number {
+  return avg(group(s, ATT_POS));
 }
 
 export function teamRating(s: GameState): number {
+  return avg(lineupPlayers(s));
+}
+
+/** Seven players actually sent onto the 2D pitch, drawn from the starting XI. */
+export function matchLineup(s: GameState): PlayerCard[] {
   const xi = lineupPlayers(s);
-  if (!xi.length) return 0;
-  return Math.round(xi.reduce((sum, p) => sum + overall(p), 0) / xi.length);
+  const gk = xi.find((p) => p.position === "GK") ?? xi[0];
+  const rest = xi.filter((p) => p !== gk);
+  const rank = (p: PlayerCard) => DEF_POS.indexOf(p.position) >= 0 ? 0 : MID_POS.indexOf(p.position) >= 0 ? 1 : 2;
+  const outfield = [...rest]
+    .sort((a, b) => effectiveOverall(b) - effectiveOverall(a))
+    .slice(0, 6)
+    .sort((a, b) => rank(a) - rank(b));
+  return gk ? [gk, ...outfield] : outfield;
 }
 
 export function upgradeCost(p: PlayerCard): number {
@@ -123,14 +175,22 @@ export const actions = {
   setFormation(formation: GameState["formation"]) {
     setState((s) => ({ ...s, formation }));
   },
-  toggleLineup(id: string) {
+  /** Swap a starting player with a bench player (or move a slot to another player). */
+  substitute(outId: string, inId: string) {
     setState((s) => {
-      const inLineup = s.lineup.includes(id);
-      if (inLineup) return { ...s, lineup: s.lineup.filter((x) => x !== id) };
-      if (s.lineup.length >= 7) return s;
-      return { ...s, lineup: [...s.lineup, id] };
+      const lineup = lineupPlayers(s).map((p) => p.id);
+      const idx = lineup.indexOf(outId);
+      if (idx < 0 || lineup.includes(inId)) return s;
+      if (!s.squad.some((p) => p.id === inId)) return s;
+      const next = [...lineup];
+      next[idx] = inId;
+      return { ...s, lineup: next };
     });
   },
+  setCaptain(id: string) {
+    setState((s) => (s.squad.some((p) => p.id === id) ? { ...s, captainId: id } : s));
+  },
+
   upgradePlayer(id: string) {
     setState((s) => {
       const player = s.squad.find((p) => p.id === id);
@@ -161,10 +221,13 @@ export const actions = {
     setState((s) => {
       const player = s.market.find((p) => p.id === id);
       if (!player || s.coins < player.price) return s;
+      const taken = new Set(s.squad.map((p) => p.number));
+      let number = player.number;
+      while (taken.has(number)) number = number >= 45 ? 2 : number + 1;
       return {
         ...s,
         coins: s.coins - player.price,
-        squad: [...s.squad, player],
+        squad: [...s.squad, { ...player, number }],
         market: s.market.filter((p) => p.id !== id),
       };
     });
@@ -172,15 +235,17 @@ export const actions = {
   sellPlayer(id: string) {
     setState((s) => {
       const player = s.squad.find((p) => p.id === id);
-      if (!player || s.squad.length <= 8) return s;
+      if (!player || s.squad.length <= XI_SIZE + 1) return s;
       return {
         ...s,
         coins: s.coins + Math.round(player.price * 0.6),
         squad: s.squad.filter((p) => p.id !== id),
         lineup: s.lineup.filter((x) => x !== id),
+        captainId: s.captainId === id ? null : s.captainId,
       };
     });
   },
+
   refreshMarket() {
     setState((s) => ({ ...s, market: makeMarket(12, 66 + s.leagueTier * 4) }));
   },
@@ -200,21 +265,28 @@ export const actions = {
   recordMatch(result: MatchResult) {
     setState((s) => {
       const table = simulateRound(s.table, s.club, result);
-      const xi = new Set(s.lineup);
+      const xi = new Set(lineupPlayers(s).map((p) => p.id));
       const squad = s.squad.map((p) => {
-        if (!xi.has(p.id)) return p;
+        const clampF = (v: number) => Math.max(35, Math.min(100, Math.round(v)));
+        if (!xi.has(p.id)) {
+          return { ...p, fitness: clampF(p.fitness + 12) };
+        }
+        const drop = 16 - (p.stamina - 60) * 0.12;
+        const fitness = clampF(p.fitness - Math.max(6, drop));
         const xp = p.xp + result.xp;
         const levels = Math.floor(xp / 100);
-        if (levels <= 0) return { ...p, xp };
+        if (levels <= 0) return { ...p, xp, fitness };
         return {
           ...p,
           xp: xp % 100,
+          fitness,
           level: p.level + levels,
           shooting: Math.min(99, p.shooting + levels),
           passing: Math.min(99, p.passing + levels),
           defense: Math.min(99, p.defense + levels),
         };
       });
+
       return {
         ...s,
         coins: s.coins + result.coins,
@@ -239,6 +311,8 @@ export const actions = {
         coins: s.coins + (champion ? 2000 : 500),
         table: makeTable(s.club),
         market: makeMarket(12, 66 + tier * 4),
+        squad: s.squad.map((p) => ({ ...p, fitness: 100, age: p.age + 1 })),
+
       };
     });
   },
