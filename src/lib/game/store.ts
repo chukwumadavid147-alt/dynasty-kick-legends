@@ -221,10 +221,13 @@ export const actions = {
     setState((s) => {
       const player = s.market.find((p) => p.id === id);
       if (!player || s.coins < player.price) return s;
+      const taken = new Set(s.squad.map((p) => p.number));
+      let number = player.number;
+      while (taken.has(number)) number = number >= 45 ? 2 : number + 1;
       return {
         ...s,
         coins: s.coins - player.price,
-        squad: [...s.squad, player],
+        squad: [...s.squad, { ...player, number }],
         market: s.market.filter((p) => p.id !== id),
       };
     });
@@ -232,15 +235,17 @@ export const actions = {
   sellPlayer(id: string) {
     setState((s) => {
       const player = s.squad.find((p) => p.id === id);
-      if (!player || s.squad.length <= 8) return s;
+      if (!player || s.squad.length <= XI_SIZE + 1) return s;
       return {
         ...s,
         coins: s.coins + Math.round(player.price * 0.6),
         squad: s.squad.filter((p) => p.id !== id),
         lineup: s.lineup.filter((x) => x !== id),
+        captainId: s.captainId === id ? null : s.captainId,
       };
     });
   },
+
   refreshMarket() {
     setState((s) => ({ ...s, market: makeMarket(12, 66 + s.leagueTier * 4) }));
   },
