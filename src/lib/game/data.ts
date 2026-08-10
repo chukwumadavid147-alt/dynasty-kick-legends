@@ -105,7 +105,9 @@ export function makePlayer(
     price: 0,
     age: rnd(17, 34),
     fitness: rnd(82, 100),
+    morale: rnd(60, 95),
     number: shirt ?? rnd(2, 45),
+
   };
   p.price = priceFor(p);
   return p;
@@ -145,8 +147,18 @@ export function makeMarket(count = 12, base = 70): PlayerCard[] {
 
 export function makeTable(club: string): TableRow[] {
   const clubs = [club, ...CLUBS.filter((c) => c !== club)].slice(0, 10);
-  return clubs.map((c) => ({ club: c, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0 }));
+  return clubs.map((c) => ({
+    club: c,
+    played: 0,
+    wins: 0,
+    draws: 0,
+    losses: 0,
+    gf: 0,
+    ga: 0,
+    form: [],
+  }));
 }
+
 
 export const points = (r: TableRow) => r.wins * 3 + r.draws;
 export const gd = (r: TableRow) => r.gf - r.ga;
