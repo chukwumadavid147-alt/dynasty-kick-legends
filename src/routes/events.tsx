@@ -31,7 +31,7 @@ function EventsPage() {
           <Sparkles className="size-4" /> Live events
         </h3>
         <div className="grid gap-3 sm:grid-cols-2">
-          {game.liveEvents.map((e) => (
+          {game.events.map((e) => (
             <article key={e.id} className="card-premium rounded-2xl p-4">
               <div className="flex items-center justify-between gap-3">
                 <h4 className="text-base font-black text-foreground">{e.name}</h4>
