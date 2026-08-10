@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DynastyRouteImport } from './routes/dynasty'
 import { Route as LeagueRouteImport } from './routes/league'
 import { Route as MatchRouteImport } from './routes/match'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SquadRouteImport } from './routes/squad'
 import { Route as TacticsRouteImport } from './routes/tactics'
@@ -36,6 +37,11 @@ const LeagueRoute = LeagueRouteImport.update({
 const MatchRoute = MatchRouteImport.update({
   id: '/match',
   path: '/match',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/dynasty': typeof DynastyRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
   '/tactics': typeof TacticsRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/dynasty': typeof DynastyRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
   '/tactics': typeof TacticsRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/dynasty': typeof DynastyRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
   '/tactics': typeof TacticsRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/dynasty'
     | '/league'
     | '/match'
+    | '/profile'
     | '/settings'
     | '/squad'
     | '/tactics'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/dynasty'
     | '/league'
     | '/match'
+    | '/profile'
     | '/settings'
     | '/squad'
     | '/tactics'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/dynasty'
     | '/league'
     | '/match'
+    | '/profile'
     | '/settings'
     | '/squad'
     | '/tactics'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   DynastyRoute: typeof DynastyRoute
   LeagueRoute: typeof LeagueRoute
   MatchRoute: typeof MatchRoute
+  ProfileRoute: typeof ProfileRoute
   SettingsRoute: typeof SettingsRoute
   SquadRoute: typeof SquadRoute
   TacticsRoute: typeof TacticsRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/match'
       fullPath: '/match'
       preLoaderRoute: typeof MatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   DynastyRoute: DynastyRoute,
   LeagueRoute: LeagueRoute,
   MatchRoute: MatchRoute,
+  ProfileRoute: ProfileRoute,
   SettingsRoute: SettingsRoute,
   SquadRoute: SquadRoute,
   TacticsRoute: TacticsRoute,
@@ -208,3 +229,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
