@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DynastyRouteImport } from './routes/dynasty'
+import { Route as EventsRouteImport } from './routes/events'
 import { Route as LeagueRouteImport } from './routes/league'
 import { Route as MatchRouteImport } from './routes/match'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -28,6 +29,11 @@ const IndexRoute = IndexRouteImport.update({
 const DynastyRoute = DynastyRouteImport.update({
   id: '/dynasty',
   path: '/dynasty',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeagueRoute = LeagueRouteImport.update({
@@ -74,6 +80,7 @@ const TransfersRoute = TransfersRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dynasty': typeof DynastyRoute
+  '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
   '/profile': typeof ProfileRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dynasty': typeof DynastyRoute
+  '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
   '/profile': typeof ProfileRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dynasty': typeof DynastyRoute
+  '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
   '/profile': typeof ProfileRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dynasty'
+    | '/events'
     | '/league'
     | '/match'
     | '/profile'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dynasty'
+    | '/events'
     | '/league'
     | '/match'
     | '/profile'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dynasty'
+    | '/events'
     | '/league'
     | '/match'
     | '/profile'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DynastyRoute: typeof DynastyRoute
+  EventsRoute: typeof EventsRoute
   LeagueRoute: typeof LeagueRoute
   MatchRoute: typeof MatchRoute
   ProfileRoute: typeof ProfileRoute
@@ -174,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/dynasty'
       fullPath: '/dynasty'
       preLoaderRoute: typeof DynastyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/league': {
@@ -238,6 +258,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DynastyRoute: DynastyRoute,
+  EventsRoute: EventsRoute,
   LeagueRoute: LeagueRoute,
   MatchRoute: MatchRoute,
   ProfileRoute: ProfileRoute,
