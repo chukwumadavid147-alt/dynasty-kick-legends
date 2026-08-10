@@ -64,6 +64,7 @@ function MatchPage() {
         xp,
         opponent,
         difficulty,
+        mode: "LEAGUE",
       };
       setResult(res);
       setPhase("done");
