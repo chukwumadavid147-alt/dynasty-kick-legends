@@ -11,10 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DynastyRouteImport } from './routes/dynasty'
+import { Route as EventsRouteImport } from './routes/events'
 import { Route as LeagueRouteImport } from './routes/league'
 import { Route as MatchRouteImport } from './routes/match'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SquadRouteImport } from './routes/squad'
+import { Route as StoreRouteImport } from './routes/store'
+import { Route as TacticsRouteImport } from './routes/tactics'
 import { Route as TransfersRouteImport } from './routes/transfers'
 
 const IndexRoute = IndexRouteImport.update({
@@ -27,6 +31,11 @@ const DynastyRoute = DynastyRouteImport.update({
   path: '/dynasty',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventsRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeagueRoute = LeagueRouteImport.update({
   id: '/league',
   path: '/league',
@@ -35,6 +44,11 @@ const LeagueRoute = LeagueRouteImport.update({
 const MatchRoute = MatchRouteImport.update({
   id: '/match',
   path: '/match',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -47,6 +61,16 @@ const SquadRoute = SquadRouteImport.update({
   path: '/squad',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoreRoute = StoreRouteImport.update({
+  id: '/store',
+  path: '/store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TacticsRoute = TacticsRouteImport.update({
+  id: '/tactics',
+  path: '/tactics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TransfersRoute = TransfersRouteImport.update({
   id: '/transfers',
   path: '/transfers',
@@ -56,29 +80,41 @@ const TransfersRoute = TransfersRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dynasty': typeof DynastyRoute
+  '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
+  '/store': typeof StoreRoute
+  '/tactics': typeof TacticsRoute
   '/transfers': typeof TransfersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dynasty': typeof DynastyRoute
+  '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
+  '/store': typeof StoreRoute
+  '/tactics': typeof TacticsRoute
   '/transfers': typeof TransfersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dynasty': typeof DynastyRoute
+  '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
+  '/store': typeof StoreRoute
+  '/tactics': typeof TacticsRoute
   '/transfers': typeof TransfersRoute
 }
 export interface FileRouteTypes {
@@ -86,38 +122,54 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dynasty'
+    | '/events'
     | '/league'
     | '/match'
+    | '/profile'
     | '/settings'
     | '/squad'
+    | '/store'
+    | '/tactics'
     | '/transfers'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dynasty'
+    | '/events'
     | '/league'
     | '/match'
+    | '/profile'
     | '/settings'
     | '/squad'
+    | '/store'
+    | '/tactics'
     | '/transfers'
   id:
     | '__root__'
     | '/'
     | '/dynasty'
+    | '/events'
     | '/league'
     | '/match'
+    | '/profile'
     | '/settings'
     | '/squad'
+    | '/store'
+    | '/tactics'
     | '/transfers'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DynastyRoute: typeof DynastyRoute
+  EventsRoute: typeof EventsRoute
   LeagueRoute: typeof LeagueRoute
   MatchRoute: typeof MatchRoute
+  ProfileRoute: typeof ProfileRoute
   SettingsRoute: typeof SettingsRoute
   SquadRoute: typeof SquadRoute
+  StoreRoute: typeof StoreRoute
+  TacticsRoute: typeof TacticsRoute
   TransfersRoute: typeof TransfersRoute
 }
 
@@ -137,6 +189,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DynastyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/league': {
       id: '/league'
       path: '/league'
@@ -149,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/match'
       fullPath: '/match'
       preLoaderRoute: typeof MatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -165,6 +231,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SquadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/store': {
+      id: '/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof StoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tactics': {
+      id: '/tactics'
+      path: '/tactics'
+      fullPath: '/tactics'
+      preLoaderRoute: typeof TacticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/transfers': {
       id: '/transfers'
       path: '/transfers'
@@ -178,10 +258,14 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DynastyRoute: DynastyRoute,
+  EventsRoute: EventsRoute,
   LeagueRoute: LeagueRoute,
   MatchRoute: MatchRoute,
+  ProfileRoute: ProfileRoute,
   SettingsRoute: SettingsRoute,
   SquadRoute: SquadRoute,
+  StoreRoute: StoreRoute,
+  TacticsRoute: TacticsRoute,
   TransfersRoute: TransfersRoute,
 }
 export const routeTree = rootRouteImport
