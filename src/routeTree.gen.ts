@@ -16,6 +16,7 @@ import { Route as MatchRouteImport } from './routes/match'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SquadRouteImport } from './routes/squad'
+import { Route as StoreRouteImport } from './routes/store'
 import { Route as TacticsRouteImport } from './routes/tactics'
 import { Route as TransfersRouteImport } from './routes/transfers'
 
@@ -54,6 +55,11 @@ const SquadRoute = SquadRouteImport.update({
   path: '/squad',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoreRoute = StoreRouteImport.update({
+  id: '/store',
+  path: '/store',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TacticsRoute = TacticsRouteImport.update({
   id: '/tactics',
   path: '/tactics',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
+  '/store': typeof StoreRoute
   '/tactics': typeof TacticsRoute
   '/transfers': typeof TransfersRoute
 }
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
+  '/store': typeof StoreRoute
   '/tactics': typeof TacticsRoute
   '/transfers': typeof TransfersRoute
 }
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
+  '/store': typeof StoreRoute
   '/tactics': typeof TacticsRoute
   '/transfers': typeof TransfersRoute
 }
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/settings'
     | '/squad'
+    | '/store'
     | '/tactics'
     | '/transfers'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/settings'
     | '/squad'
+    | '/store'
     | '/tactics'
     | '/transfers'
   id:
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/settings'
     | '/squad'
+    | '/store'
     | '/tactics'
     | '/transfers'
   fileRoutesById: FileRoutesById
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   SettingsRoute: typeof SettingsRoute
   SquadRoute: typeof SquadRoute
+  StoreRoute: typeof StoreRoute
   TacticsRoute: typeof TacticsRoute
   TransfersRoute: typeof TransfersRoute
 }
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SquadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/store': {
+      id: '/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof StoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tactics': {
       id: '/tactics'
       path: '/tactics'
@@ -223,19 +243,10 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   SettingsRoute: SettingsRoute,
   SquadRoute: SquadRoute,
+  StoreRoute: StoreRoute,
   TacticsRoute: TacticsRoute,
   TransfersRoute: TransfersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
