@@ -272,3 +272,16 @@ export const FORMATIONS_XI: Record<FormationName, Array<{ x: number; y: number; 
 export const DEF_POS: Position[] = ["GK", "CB", "LB", "RB"];
 export const MID_POS: Position[] = ["CDM", "CM", "CAM"];
 export const ATT_POS: Position[] = ["LW", "RW", "ST"];
+
+/** Deterministic fictional XI for an AI opponent club. */
+export function opponentXI(
+  club: string,
+  formation: FormationName,
+  base = 68,
+): PlayerCard[] {
+  let h = 0;
+  for (let i = 0; i < club.length; i++) h = (h * 31 + club.charCodeAt(i)) | 0;
+  return withSeed(Math.abs(h) + 7, () =>
+    FORMATIONS_XI[formation].map((slot, i) => makePlayer(slot.role, base, undefined, i + 1)),
+  );
+}

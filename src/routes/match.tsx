@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GameShell } from "@/components/game/GameShell";
 import { ActionButton, Joystick } from "@/components/game/TouchControls";
+import { opponentXI, overall } from "@/lib/game/data";
 import { MatchEngine, type Input } from "@/lib/game/engine";
-import { actions, hydrate, matchLineup, nextOpponent, useGame } from "@/lib/game/store";
-import type { Difficulty, MatchResult } from "@/lib/game/types";
+import { actions, hydrate, lineupPlayers, matchLineup, nextOpponent, useGame } from "@/lib/game/store";
+import type { Difficulty, MatchResult, PlayerCard } from "@/lib/game/types";
+
 
 export const Route = createFileRoute("/match")({
   head: () => ({
@@ -33,6 +35,72 @@ function fmt(sec: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function TeamSheet({
+  club,
+  players,
+  accent,
+  formation,
+  captainId,
+  starters,
+}: {
+  club: string;
+  players: PlayerCard[];
+  accent: "gold" | "muted";
+  formation: string;
+  captainId?: string | null;
+  starters?: number;
+}) {
+  return (
+    <div className="rounded-2xl bg-secondary/40 p-4 ring-1 ring-border">
+      <div className="flex items-baseline justify-between gap-2">
+        <p
+          className={`truncate text-sm font-black uppercase tracking-wide ${
+            accent === "gold" ? "text-gold" : "text-foreground"
+          }`}
+        >
+          {club}
+        </p>
+        <span className="text-[0.6rem] font-bold uppercase tracking-widest text-muted-foreground">
+          {formation}
+        </span>
+      </div>
+      <ul className="mt-3 space-y-1">
+        {players.map((p, i) => (
+          <li
+            key={p.id}
+            className={`flex items-center gap-2 rounded-lg px-2 py-1 text-xs ${
+              starters !== undefined && i < starters ? "bg-primary/10" : ""
+            }`}
+          >
+            <span className="w-6 shrink-0 text-right font-black tabular-nums text-muted-foreground">
+              {p.number}
+            </span>
+            <span className="min-w-0 flex-1 truncate font-semibold text-foreground">
+              {p.name}
+              {captainId === p.id && (
+                <span className="ml-1 rounded bg-gold/20 px-1 text-[0.55rem] font-black text-gold">C</span>
+              )}
+            </span>
+            <span className="w-9 shrink-0 text-[0.6rem] font-bold uppercase text-muted-foreground">
+              {p.position}
+            </span>
+            <span className="w-6 shrink-0 text-right font-black tabular-nums text-gold">
+              {overall(p)}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {starters !== undefined && (
+        <p className="mt-2 text-[0.6rem] uppercase tracking-widest text-muted-foreground">
+          Highlighted players take the pitch
+        </p>
+      )}
+    </div>
+  );
+}
+
+
+
 function MatchPage() {
   const game = useGame();
   useEffect(() => hydrate(), []);
@@ -43,6 +111,18 @@ function MatchPage() {
   const [clock, setClock] = useState(game.settings.matchMinutes * 60);
   const [result, setResult] = useState<MatchResult | null>(null);
   const opponent = nextOpponent(game);
+
+  const pitchIds = useMemo(() => new Set(matchLineup(game).map((p) => p.id)), [game]);
+  const homeSheet = useMemo(() => {
+    const xi = lineupPlayers(game);
+    return [...xi].sort((a, b) => Number(pitchIds.has(b.id)) - Number(pitchIds.has(a.id)));
+  }, [game, pitchIds]);
+  const awaySheet = useMemo(
+    () => opponentXI(opponent, game.formation, 62 + game.leagueTier * 3),
+    [opponent, game.formation, game.leagueTier],
+  );
+
+
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<MatchEngine | null>(null);
@@ -175,10 +255,27 @@ function MatchPage() {
               </button>
             ))}
           </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <TeamSheet
+              club={game.club}
+              players={homeSheet}
+              accent="gold"
+              formation={game.formation}
+              captainId={game.captainId}
+              starters={7}
+            />
+            <TeamSheet
+              club={opponent}
+              players={awaySheet}
+              accent="muted"
+              formation={game.formation}
+            />
+          </div>
           <div className="mt-6 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
             <p>Desktop: WASD / arrows move · Space pass · J shoot · K tackle · Shift sprint</p>
             <p>Mobile: joystick to move, buttons for pass, shoot, tackle and sprint</p>
           </div>
+
           <button
             onClick={startMatch}
             className="mt-6 w-full rounded-2xl bg-primary px-6 py-4 text-base font-black uppercase tracking-widest text-primary-foreground transition-transform hover:-translate-y-0.5"
