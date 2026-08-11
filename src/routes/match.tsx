@@ -35,6 +35,72 @@ function fmt(sec: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function TeamSheet({
+  club,
+  players,
+  accent,
+  formation,
+  captainId,
+  starters,
+}: {
+  club: string;
+  players: PlayerCard[];
+  accent: "gold" | "muted";
+  formation: string;
+  captainId?: string | null;
+  starters?: number;
+}) {
+  return (
+    <div className="rounded-2xl bg-secondary/40 p-4 ring-1 ring-border">
+      <div className="flex items-baseline justify-between gap-2">
+        <p
+          className={`truncate text-sm font-black uppercase tracking-wide ${
+            accent === "gold" ? "text-gold" : "text-foreground"
+          }`}
+        >
+          {club}
+        </p>
+        <span className="text-[0.6rem] font-bold uppercase tracking-widest text-muted-foreground">
+          {formation}
+        </span>
+      </div>
+      <ul className="mt-3 space-y-1">
+        {players.map((p, i) => (
+          <li
+            key={p.id}
+            className={`flex items-center gap-2 rounded-lg px-2 py-1 text-xs ${
+              starters !== undefined && i < starters ? "bg-primary/10" : ""
+            }`}
+          >
+            <span className="w-6 shrink-0 text-right font-black tabular-nums text-muted-foreground">
+              {p.number}
+            </span>
+            <span className="min-w-0 flex-1 truncate font-semibold text-foreground">
+              {p.name}
+              {captainId === p.id && (
+                <span className="ml-1 rounded bg-gold/20 px-1 text-[0.55rem] font-black text-gold">C</span>
+              )}
+            </span>
+            <span className="w-9 shrink-0 text-[0.6rem] font-bold uppercase text-muted-foreground">
+              {p.position}
+            </span>
+            <span className="w-6 shrink-0 text-right font-black tabular-nums text-gold">
+              {overall(p)}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {starters !== undefined && (
+        <p className="mt-2 text-[0.6rem] uppercase tracking-widest text-muted-foreground">
+          Highlighted players take the pitch
+        </p>
+      )}
+    </div>
+  );
+}
+
+
+
 function MatchPage() {
   const game = useGame();
   useEffect(() => hydrate(), []);
