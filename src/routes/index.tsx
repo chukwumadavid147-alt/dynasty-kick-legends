@@ -43,10 +43,10 @@ const FEATURES = [
     sub: "Quick Match · Offline",
     primary: true,
   },
-  { to: "/dynasty", img: cardCareer, label: "Career Mode", hint: "Build your club. Make history." },
-  { to: "/events", img: cardTournament, label: "Tournament", hint: "Compete in exciting tournaments." },
-  { to: "/tactics", img: cardTraining, label: "Training", hint: "Improve your skills and tactics." },
-  { to: "/squad", img: cardClub, label: "My Club", hint: "Manage your team, stadium and staff." },
+  { to: "/dynasty", img: cardCareer, label: "Career Mode", hint: "Build your club. Make history.", sub: "", primary: false },
+  { to: "/events", img: cardTournament, label: "Tournament", hint: "Compete in exciting tournaments.", sub: "", primary: false },
+  { to: "/tactics", img: cardTraining, label: "Training", hint: "Improve your skills and tactics.", sub: "", primary: false },
+  { to: "/squad", img: cardClub, label: "My Club", hint: "Manage your team, stadium and staff.", sub: "", primary: false },
 ] as const;
 
 const SIDE = [
