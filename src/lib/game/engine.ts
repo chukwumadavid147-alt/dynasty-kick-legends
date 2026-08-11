@@ -477,14 +477,20 @@ export class MatchEngine {
     ctx.translate((cw - W * scale) / 2, (ch - H * scale) / 2);
     ctx.scale(scale, scale);
 
-    // turf
-    for (let i = 0; i < 10; i++) {
-      ctx.fillStyle = i % 2 === 0 ? "#12643a" : "#0f5733";
-      ctx.fillRect((i * W) / 10, 0, W / 10, H);
+    // turf — bright mown stripes
+    for (let i = 0; i < 14; i++) {
+      ctx.fillStyle = i % 2 === 0 ? "#3fa64a" : "#379a42";
+      ctx.fillRect((i * W) / 14, 0, W / 14 + 1, H);
     }
+    // soft vignette / floodlight sheen
+    const glow = ctx.createRadialGradient(W / 2, H / 2, 60, W / 2, H / 2, W * 0.72);
+    glow.addColorStop(0, "rgba(255,255,255,0.10)");
+    glow.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
 
-    ctx.strokeStyle = "rgba(255,255,255,0.85)";
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 4;
     ctx.strokeRect(MARGIN, MARGIN, W - MARGIN * 2, H - MARGIN * 2);
     ctx.beginPath();
     ctx.moveTo(W / 2, MARGIN);
@@ -495,43 +501,123 @@ export class MatchEngine {
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(W / 2, H / 2, 5, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillStyle = "#ffffff";
     ctx.fill();
 
-    // boxes + goals
+    // corner arcs
+    ctx.lineWidth = 3;
+    const corners: Array<[number, number, number]> = [
+      [MARGIN, MARGIN, 0],
+      [W - MARGIN, MARGIN, Math.PI / 2],
+      [W - MARGIN, H - MARGIN, Math.PI],
+      [MARGIN, H - MARGIN, -Math.PI / 2],
+    ];
+    for (const [cx, cy, a0] of corners) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 16, a0, a0 + Math.PI / 2);
+      ctx.stroke();
+    }
+
+    // boxes + penalty spots + arcs
+    ctx.lineWidth = 4;
     const boxH = 260;
     const boxW = 120;
     ctx.strokeRect(MARGIN, H / 2 - boxH / 2, boxW, boxH);
     ctx.strokeRect(W - MARGIN - boxW, H / 2 - boxH / 2, boxW, boxH);
     ctx.strokeRect(MARGIN, H / 2 - 100, 52, 200);
     ctx.strokeRect(W - MARGIN - 52, H / 2 - 100, 52, 200);
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.fillRect(MARGIN - 16, GOAL_TOP, 16, GOAL_BOT - GOAL_TOP);
-    ctx.fillRect(W - MARGIN, GOAL_TOP, 16, GOAL_BOT - GOAL_TOP);
+    for (const spot of [MARGIN + 88, W - MARGIN - 88]) {
+      ctx.beginPath();
+      ctx.arc(spot, H / 2, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(MARGIN + 88, H / 2, 64, -Math.PI / 2.4, Math.PI / 2.4);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(W - MARGIN - 88, H / 2, 64, Math.PI - Math.PI / 2.4, Math.PI + Math.PI / 2.4);
+    ctx.stroke();
 
-    // actors
+    // goals with netting
+    const drawGoal = (gx: number, dir: number) => {
+      const depth = 22 * dir;
+      ctx.fillStyle = "rgba(255,255,255,0.22)";
+      ctx.fillRect(Math.min(gx, gx + depth), GOAL_TOP, Math.abs(depth), GOAL_BOT - GOAL_TOP);
+      ctx.strokeStyle = "rgba(255,255,255,0.55)";
+      ctx.lineWidth = 1;
+      for (let y = GOAL_TOP; y <= GOAL_BOT; y += 8) {
+        ctx.beginPath();
+        ctx.moveTo(gx, y);
+        ctx.lineTo(gx + depth, y);
+        ctx.stroke();
+      }
+      for (let k = 0; k <= Math.abs(depth); k += 7) {
+        const x = gx + k * dir;
+        ctx.beginPath();
+        ctx.moveTo(x, GOAL_TOP);
+        ctx.lineTo(x, GOAL_BOT);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(gx, GOAL_TOP);
+      ctx.lineTo(gx, GOAL_BOT);
+      ctx.stroke();
+    };
+    drawGoal(MARGIN, -1);
+    drawGoal(W - MARGIN, 1);
+
+    // actors — kit-style with shirt + shorts
     for (const a of this.actors) {
       ctx.beginPath();
-      ctx.arc(a.x, a.y + 4, 13, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.ellipse(a.x, a.y + 12, 13, 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
       ctx.fill();
+
+      const shirt = a.gk
+        ? a.home
+          ? "#f7c948"
+          : "#5cd0e6"
+        : a.home
+          ? "#ffffff"
+          : "#e2483f";
+      const shorts = a.gk ? "#12324f" : a.home ? "#1b3a8f" : "#2a2a35";
+
+      // shorts
+      ctx.fillStyle = shorts;
       ctx.beginPath();
-      ctx.arc(a.x, a.y, 13, 0, Math.PI * 2);
-      ctx.fillStyle = a.gk ? (a.home ? "#f7c948" : "#c94f4f") : a.home ? "#3ddc84" : "#e0e4f0";
+      ctx.roundRect(a.x - 8, a.y + 1, 16, 11, 3);
       ctx.fill();
+      // shirt
+      ctx.fillStyle = shirt;
+      ctx.beginPath();
+      ctx.roundRect(a.x - 10, a.y - 11, 20, 14, 4);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.35)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // head
+      ctx.beginPath();
+      ctx.arc(a.x, a.y - 15, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "#e8c39e";
+      ctx.fill();
+
       if (a === this.controlled) {
         ctx.strokeStyle = "#f7c948";
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(a.x, a.y, 19, 0, Math.PI * 2);
+        ctx.ellipse(a.x, a.y + 12, 18, 8, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
-      ctx.fillStyle = "#0b1220";
-      ctx.font = "bold 12px system-ui, sans-serif";
+      ctx.fillStyle = a.home && !a.gk ? "#1b3a8f" : "#0b1220";
+      ctx.font = "bold 9px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(String(a.num), a.x, a.y);
+      ctx.fillText(String(a.num), a.x, a.y - 4);
     }
+
 
     // ball
     const b = this.ball;
