@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GameShell } from "@/components/game/GameShell";
 import { ActionButton, Joystick } from "@/components/game/TouchControls";
+import { opponentXI, overall } from "@/lib/game/data";
 import { MatchEngine, type Input } from "@/lib/game/engine";
-import { actions, hydrate, matchLineup, nextOpponent, useGame } from "@/lib/game/store";
-import type { Difficulty, MatchResult } from "@/lib/game/types";
+import { actions, hydrate, lineupPlayers, matchLineup, nextOpponent, useGame } from "@/lib/game/store";
+import type { Difficulty, MatchResult, PlayerCard } from "@/lib/game/types";
+
 
 export const Route = createFileRoute("/match")({
   head: () => ({
