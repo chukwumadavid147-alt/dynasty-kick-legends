@@ -270,7 +270,19 @@ function SquadPage() {
                   >
                     Upgrade · {upgradeCost(selected).toLocaleString()}
                   </button>
+                  <button
+                    onClick={() => {
+                      actions.sellPlayer(selected.id);
+                      setSelectedId(null);
+                      setSubOutId(null);
+                    }}
+                    disabled={game.squad.length <= 12}
+                    className="flex-1 rounded-lg bg-destructive/15 px-3 py-2 text-[0.7rem] font-black uppercase tracking-wide text-destructive ring-1 ring-destructive/40 disabled:opacity-40"
+                  >
+                    Sell · {Math.round(selected.price * 0.6).toLocaleString()}
+                  </button>
                 </div>
+
               </div>
             )}
           </div>

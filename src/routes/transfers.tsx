@@ -65,6 +65,31 @@ function TransfersPage() {
           No players listed. Scout again to refresh the market.
         </p>
       )}
+
+      <section className="mt-8">
+        <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-gold">Sell players</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Selling returns 60% of a player's value. You must keep at least 12 players.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {game.squad.map((p) => (
+            <PlayerCard
+              key={p.id}
+              player={p}
+              footer={
+                <button
+                  onClick={() => actions.sellPlayer(p.id)}
+                  disabled={game.squad.length <= 12}
+                  className="w-full rounded-lg bg-destructive/15 px-3 py-2.5 text-xs font-black uppercase tracking-wide text-destructive ring-1 ring-destructive/40 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Sell · {Math.round(p.price * 0.6).toLocaleString()}
+                </button>
+              }
+            />
+          ))}
+        </div>
+      </section>
     </GameShell>
   );
 }
+
