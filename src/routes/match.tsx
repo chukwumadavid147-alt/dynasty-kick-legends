@@ -112,6 +112,18 @@ function MatchPage() {
   const [result, setResult] = useState<MatchResult | null>(null);
   const opponent = nextOpponent(game);
 
+  const pitchIds = useMemo(() => new Set(matchLineup(game).map((p) => p.id)), [game]);
+  const homeSheet = useMemo(() => {
+    const xi = lineupPlayers(game);
+    return [...xi].sort((a, b) => Number(pitchIds.has(b.id)) - Number(pitchIds.has(a.id)));
+  }, [game, pitchIds]);
+  const awaySheet = useMemo(
+    () => opponentXI(opponent, game.formation, 62 + game.leagueTier * 3),
+    [opponent, game.formation, game.leagueTier],
+  );
+
+
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<MatchEngine | null>(null);
   const keys = useRef<Record<string, boolean>>({});
