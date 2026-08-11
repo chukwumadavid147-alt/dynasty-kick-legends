@@ -255,10 +255,27 @@ function MatchPage() {
               </button>
             ))}
           </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <TeamSheet
+              club={game.club}
+              players={homeSheet}
+              accent="gold"
+              formation={game.formation}
+              captainId={game.captainId}
+              starters={7}
+            />
+            <TeamSheet
+              club={opponent}
+              players={awaySheet}
+              accent="muted"
+              formation={game.formation}
+            />
+          </div>
           <div className="mt-6 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
             <p>Desktop: WASD / arrows move · Space pass · J shoot · K tackle · Shift sprint</p>
             <p>Mobile: joystick to move, buttons for pass, shoot, tackle and sprint</p>
           </div>
+
           <button
             onClick={startMatch}
             className="mt-6 w-full rounded-2xl bg-primary px-6 py-4 text-base font-black uppercase tracking-widest text-primary-foreground transition-transform hover:-translate-y-0.5"
