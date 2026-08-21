@@ -6,6 +6,7 @@ import { opponentXI, overall } from "@/lib/game/data";
 import { MatchEngine, type Input } from "@/lib/game/engine";
 import { actions, hydrate, lineupPlayers, matchLineup, nextOpponent, useGame } from "@/lib/game/store";
 import type { Difficulty, MatchResult, PlayerCard } from "@/lib/game/types";
+import { makeRoomCode, MultiplayerRoom } from "@/lib/game/multiplayer";
 
 
 export const Route = createFileRoute("/match")({
@@ -110,7 +111,12 @@ function MatchPage() {
   const [score, setScore] = useState({ home: 0, away: 0 });
   const [clock, setClock] = useState(game.settings.matchMinutes * 60);
   const [result, setResult] = useState<MatchResult | null>(null);
-  const opponent = nextOpponent(game);
+  const [mode, setMode] = useState<"offline" | "online">("offline");
+  const [role, setRole] = useState<"host" | "guest">("host");
+  const [roomCode, setRoomCode] = useState("");
+  const [roomStatus, setRoomStatus] = useState("");
+  const roomRef = useRef<MultiplayerRoom | null>(null);
+  const opponent = mode === "online" ? "Online Rival" : nextOpponent(game);
 
   const pitchIds = useMemo(() => new Set(matchLineup(game).map((p) => p.id)), [game]);
   const homeSheet = useMemo(() => {
@@ -127,6 +133,28 @@ function MatchPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<MatchEngine | null>(null);
   const keys = useRef<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (mode !== "online" || roomCode.length !== 6) return;
+    const room = new MultiplayerRoom(role, roomCode);
+    roomRef.current = room;
+    const stopStatus = room.onStatus(setRoomStatus);
+    const stopMessages = room.onMessage((message) => {
+      if (message.type === "input") engineRef.current?.setRemoteInput(message.input);
+      if (message.type === "score" && role === "guest") setScore({ home: message.home, away: message.away });
+      if (message.type === "clock" && role === "guest") setClock(message.seconds);
+      if (message.type === "end" && role === "guest") finishRef.current?.(message.home, message.away);
+    });
+    room.connect();
+    return () => {
+      stopStatus();
+      stopMessages();
+      room.close();
+      roomRef.current = null;
+    };
+  }, [mode, role, roomCode]);
+
+  const finishRef = useRef<(home: number, away: number) => void>(() => undefined);
 
   const finish = useCallback(
     (home: number, away: number) => {
@@ -149,9 +177,14 @@ function MatchPage() {
       setResult(res);
       setPhase("done");
       actions.recordMatch(res);
+      if (mode === "online" && role === "host") roomRef.current?.send({ type: "end", home, away });
     },
-    [difficulty, opponent],
+    [difficulty, mode, opponent, role],
   );
+
+  useEffect(() => {
+    finishRef.current = finish;
+  }, [finish]);
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -173,10 +206,17 @@ function MatchPage() {
       difficulty,
       game.settings.matchMinutes * 60,
       {
-        onScore: (h, a) => setScore({ home: h, away: a }),
-        onClock: (s) => setClock(s),
+        onScore: (h, a) => {
+          setScore({ home: h, away: a });
+          if (mode === "online" && role === "host") roomRef.current?.send({ type: "score", home: h, away: a });
+        },
+        onClock: (s) => {
+          setClock(s);
+          if (mode === "online" && role === "host" && Math.floor(s * 10) % 10 === 0) roomRef.current?.send({ type: "clock", seconds: s });
+        },
         onEnd: (h, a) => finish(h, a),
       },
+      mode === "online" && role === "guest" ? "away" : "home",
     );
     engineRef.current = engine;
     engine.start();
@@ -187,6 +227,7 @@ function MatchPage() {
       input.dx = (k["d"] || k["arrowright"] ? 1 : 0) - (k["a"] || k["arrowleft"] ? 1 : 0);
       input.dy = (k["s"] || k["arrowdown"] ? 1 : 0) - (k["w"] || k["arrowup"] ? 1 : 0);
       input.sprint = Boolean(k["shift"]);
+      roomRef.current?.send({ type: "input", input: { ...input } });
     };
     const down = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
@@ -212,14 +253,22 @@ function MatchPage() {
       window.removeEventListener("keyup", up);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, difficulty]);
+  }, [phase, difficulty, mode, role]);
 
   const joystick = useCallback((dx: number, dy: number) => {
     const e = engineRef.current;
     if (e) {
       e.input.dx = dx;
       e.input.dy = dy;
+      roomRef.current?.send({ type: "input", input: { ...e.input } });
     }
+  }, []);
+
+  const sendAction = useCallback((key: "pass" | "shoot" | "tackle") => {
+    const e = engineRef.current;
+    if (!e) return;
+    e.input[key] = true;
+    roomRef.current?.send({ type: "input", input: { ...e.input } });
   }, []);
 
   const startMatch = () => {
@@ -237,6 +286,23 @@ function MatchPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {game.formation} · {game.settings.matchMinutes} minute match
           </p>
+          <div className="mt-6 grid grid-cols-2 gap-2 rounded-2xl bg-secondary p-1">
+            <button onClick={() => setMode("offline")} className={`rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wide ${mode === "offline" ? "bg-card text-foreground shadow" : "text-muted-foreground"}`}>Quick match</button>
+            <button onClick={() => setMode("online")} className={`rounded-xl px-3 py-2 text-xs font-black uppercase tracking-wide ${mode === "online" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground"}`}>Play online</button>
+          </div>
+          {mode === "online" && (
+            <div className="mt-4 rounded-2xl bg-primary/10 p-4 ring-1 ring-primary/20">
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => { setRole("host"); setRoomCode(makeRoomCode()); }} className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wide ${role === "host" ? "bg-primary text-primary-foreground" : "bg-card text-foreground"}`}>Create room</button>
+                <button onClick={() => setRole("guest")} className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wide ${role === "guest" ? "bg-primary text-primary-foreground" : "bg-card text-foreground"}`}>Join room</button>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <input value={roomCode} maxLength={6} onChange={(e) => setRoomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} placeholder={role === "host" ? "ROOM CODE" : "ENTER CODE"} className="min-w-0 flex-1 rounded-xl bg-card px-3 py-2 text-sm font-black tracking-[0.25em] text-foreground outline-none ring-1 ring-border" />
+                {role === "guest" && <button onClick={() => setRoomCode(roomCode.trim())} className="rounded-xl bg-card px-4 py-2 text-xs font-black uppercase ring-1 ring-border">Connect</button>}
+              </div>
+              <p className="mt-2 text-xs font-semibold text-muted-foreground">{roomStatus || (role === "host" ? "Create a room and share the code." : "Enter your opponent's room code.")}</p>
+            </div>
+          )}
           <p className="mt-6 text-xs font-bold uppercase tracking-widest text-muted-foreground">
             Difficulty
           </p>
@@ -278,9 +344,10 @@ function MatchPage() {
 
           <button
             onClick={startMatch}
-            className="mt-6 w-full rounded-2xl bg-primary px-6 py-4 text-base font-black uppercase tracking-widest text-primary-foreground transition-transform hover:-translate-y-0.5"
+            disabled={mode === "online" && !roomStatus.includes("Connected")}
+            className="mt-6 w-full rounded-2xl bg-primary px-6 py-4 text-base font-black uppercase tracking-widest text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Start match
+            {mode === "online" ? "Start online match" : "Start match"}
           </button>
         </div>
       </GameShell>
@@ -372,23 +439,23 @@ function MatchPage() {
             <ActionButton
               label="Pass"
               tone="muted"
-              onDown={() => engineRef.current && (engineRef.current.input.pass = true)}
+              onDown={() => sendAction("pass")}
             />
             <ActionButton
               label="Shoot"
               tone="gold"
-              onDown={() => engineRef.current && (engineRef.current.input.shoot = true)}
+              onDown={() => sendAction("shoot")}
             />
             <ActionButton
               label="Tackle"
               tone="muted"
-              onDown={() => engineRef.current && (engineRef.current.input.tackle = true)}
+              onDown={() => sendAction("tackle")}
             />
             <ActionButton
               label="Sprint"
               tone="primary"
-              onDown={() => engineRef.current && (engineRef.current.input.sprint = true)}
-              onUp={() => engineRef.current && (engineRef.current.input.sprint = false)}
+              onDown={() => { if (engineRef.current) { engineRef.current.input.sprint = true; roomRef.current?.send({ type: "input", input: { ...engineRef.current.input } }); } }}
+              onUp={() => { if (engineRef.current) { engineRef.current.input.sprint = false; roomRef.current?.send({ type: "input", input: { ...engineRef.current.input } }); } }}
             />
           </div>
         </div>

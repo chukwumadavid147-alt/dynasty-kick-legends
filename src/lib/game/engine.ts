@@ -71,6 +71,9 @@ export class MatchEngine {
   private away = 0;
   private diff: (typeof DIFF)[Difficulty];
   private controlled: Actor | null = null;
+  private controlledAway: Actor | null = null;
+  private remoteInput: Input = { dx: 0, dy: 0, sprint: false, pass: false, shoot: false, tackle: false };
+  private localSide: "home" | "away";
   private celebration = 0;
   input: Input = { dx: 0, dy: 0, sprint: false, pass: false, shoot: false, tackle: false };
 
@@ -81,7 +84,9 @@ export class MatchEngine {
     difficulty: Difficulty,
     seconds: number,
     private events: EngineEvents,
+    localSide: "home" | "away" = "home",
   ) {
+    this.localSide = localSide;
     this.canvas = canvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D context unavailable");
@@ -139,7 +144,8 @@ export class MatchEngine {
     this.ball.lock = 0;
     const team = this.actors.filter((a) => a.home === homeStart && !a.gk);
     this.ball.owner = team[team.length - 1] ?? null;
-    this.controlled = this.ball.owner?.home ? this.ball.owner : null;
+    this.controlled = this.ball.owner?.home ? this.ball.owner : this.nearestToBall(true);
+    this.controlledAway = this.ball.owner?.home === false ? this.ball.owner : this.nearestToBall(false);
   }
 
   start() {
@@ -166,8 +172,8 @@ export class MatchEngine {
     cancelAnimationFrame(this.raf);
   }
 
-  private nearestHomeToBall(): Actor {
-    const outfield = this.actors.filter((a) => a.home && !a.gk);
+  private nearestToBall(home: boolean): Actor {
+    const outfield = this.actors.filter((a) => a.home === home && !a.gk);
     let best = outfield[0] as Actor;
     let bd = Infinity;
     for (const a of outfield) {
@@ -195,16 +201,15 @@ export class MatchEngine {
     }
 
     const owner = this.ball.owner;
-    if (!owner || owner.home) {
-      const target = owner && owner.home ? owner : this.nearestHomeToBall();
-      this.controlled = target;
-    } else if (!this.controlled || this.controlled.gk) {
-      this.controlled = this.nearestHomeToBall();
-    }
+    this.controlled = owner?.home ? owner : this.nearestToBall(true);
+    this.controlledAway = owner && !owner.home ? owner : this.nearestToBall(false);
 
     for (const a of this.actors) {
       a.cooldown = Math.max(0, a.cooldown - dt);
-      if (a === this.controlled) this.driveControlled(a, dt);
+      const localActor = this.localSide === "home" ? this.controlled : this.controlledAway;
+      const remoteActor = this.localSide === "home" ? this.controlledAway : this.controlled;
+      if (a === localActor) this.driveControlled(a, dt, this.input);
+      else if (a === remoteActor) this.driveControlled(a, dt, this.remoteInput);
       else this.driveAI(a, dt);
       a.x = clamp(a.x + a.vx * dt, 12, W - 12);
       a.y = clamp(a.y + a.vy * dt, 12, H - 12);
@@ -215,8 +220,7 @@ export class MatchEngine {
     this.checkGoal();
   }
 
-  private driveControlled(a: Actor, dt: number) {
-    const i = this.input;
+  private driveControlled(a: Actor, dt: number, i: Input) {
     const mag = Math.hypot(i.dx, i.dy);
     const speed = (140 + a.spd * 1.5) * (i.sprint ? 1.35 : 1);
     if (mag > 0.05) {
@@ -408,21 +412,29 @@ export class MatchEngine {
     }
   }
 
+  setRemoteInput(input: Input) {
+    this.remoteInput = { ...input };
+  }
+
   private resolveActions() {
-    const c = this.controlled;
-    const i = this.input;
-    if (!c) return;
-    if (i.pass) {
-      i.pass = false;
-      if (this.ball.owner === c) this.pass(c);
-    }
-    if (i.shoot) {
-      i.shoot = false;
-      if (this.ball.owner === c) this.shoot(c);
-    }
-    if (i.tackle) {
-      i.tackle = false;
-      if (c.cooldown <= 0) this.tackle(c);
+    const players = this.localSide === "home"
+      ? [[this.controlled, this.input], [this.controlledAway, this.remoteInput]]
+      : [[this.controlledAway, this.input], [this.controlled, this.remoteInput]];
+    const controlledPlayers = players as Array<[Actor | null, Input]>;
+    for (const [c, i] of controlledPlayers) {
+      if (!c) continue;
+      if (i.pass) {
+        i.pass = false;
+        if (this.ball.owner === c) this.pass(c);
+      }
+      if (i.shoot) {
+        i.shoot = false;
+        if (this.ball.owner === c) this.shoot(c);
+      }
+      if (i.tackle) {
+        i.tackle = false;
+        if (c.cooldown <= 0) this.tackle(c);
+      }
     }
     // AI defenders auto tackle
     const owner = this.ball.owner;
