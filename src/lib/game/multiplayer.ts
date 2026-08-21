@@ -1,4 +1,6 @@
 import Peer, { type DataConnection } from "peerjs";
+import type { MatchSnapshot } from "./netcode";
+import type { PlayerCard } from "./types";
 
 export type NetworkInput = {
   dx: number;
@@ -9,16 +11,25 @@ export type NetworkInput = {
   tackle: boolean;
 };
 
+export type TeamPayload = {
+  name: string;
+  club: string;
+  rating: number;
+  lineup: PlayerCard[];
+};
+
 export type MultiplayerMessage =
-  | { type: "ready"; name: string }
+  | { type: "hello"; team: TeamPayload }
+  | { type: "ready" }
+  | { type: "start"; seconds: number }
   | { type: "input"; input: NetworkInput }
-  | { type: "score"; home: number; away: number }
-  | { type: "clock"; seconds: number }
+  | { type: "snapshot"; snap: MatchSnapshot }
   | { type: "end"; home: number; away: number };
 
 export type MultiplayerRole = "host" | "guest";
+export type ConnectionState = "idle" | "connecting" | "waiting" | "connected" | "closed" | "error";
 
-const PREFIX = "dkl-match-";
+const PREFIX = "fdx-match-";
 
 export function makeRoomCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -28,9 +39,10 @@ export class MultiplayerRoom {
   private peer: Peer | null = null;
   private connection: DataConnection | null = null;
   private listeners = new Set<(message: MultiplayerMessage) => void>();
-  private statusListeners = new Set<(status: string) => void>();
+  private statusListeners = new Set<(status: string, state: ConnectionState) => void>();
   role: MultiplayerRole;
   code: string;
+  state: ConnectionState = "idle";
 
   constructor(role: MultiplayerRole, code: string) {
     this.role = role;
@@ -42,33 +54,38 @@ export class MultiplayerRoom {
     return () => this.listeners.delete(listener);
   }
 
-  onStatus(listener: (status: string) => void) {
+  onStatus(listener: (status: string, state: ConnectionState) => void) {
     this.statusListeners.add(listener);
     return () => this.statusListeners.delete(listener);
   }
 
-  private status(value: string) {
-    this.statusListeners.forEach((listener) => listener(value));
+  get connected() {
+    return Boolean(this.connection?.open);
+  }
+
+  private status(value: string, state: ConnectionState) {
+    this.state = state;
+    this.statusListeners.forEach((listener) => listener(value, state));
   }
 
   private attach(connection: DataConnection) {
     this.connection = connection;
-    connection.on("open", () => this.status("Connected to opponent"));
+    connection.on("open", () => this.status("Connected to opponent", "connected"));
     connection.on("data", (payload) => {
       if (!payload || typeof payload !== "object") return;
       this.listeners.forEach((listener) => listener(payload as MultiplayerMessage));
     });
-    connection.on("close", () => this.status("Opponent disconnected"));
-    connection.on("error", () => this.status("Connection error"));
+    connection.on("close", () => this.status("Opponent disconnected", "closed"));
+    connection.on("error", () => this.status("Connection error", "error"));
   }
 
   connect() {
-    this.status("Connecting…");
+    this.status("Connecting…", "connecting");
     const id = `${PREFIX}${this.code}`;
     this.peer = this.role === "host" ? new Peer(id) : new Peer();
     this.peer.on("open", () => {
       if (this.role === "host") {
-        this.status("Room open — waiting for opponent");
+        this.status("Room open — waiting for opponent", "waiting");
       } else {
         const connection = this.peer?.connect(id, { reliable: true });
         if (connection) this.attach(connection);
@@ -78,7 +95,14 @@ export class MultiplayerRoom {
       if (this.role === "host") this.attach(connection);
     });
     this.peer.on("error", (error) => {
-      this.status(error.type === "unavailable-id" ? "Room code already in use" : "Unable to connect");
+      this.status(
+        error.type === "unavailable-id"
+          ? "Room code already in use"
+          : error.type === "peer-unavailable"
+            ? "No room found for that code"
+            : "Unable to connect",
+        "error",
+      );
     });
   }
 
@@ -91,5 +115,6 @@ export class MultiplayerRoom {
     this.peer?.destroy();
     this.connection = null;
     this.peer = null;
+    this.status("Disconnected", "closed");
   }
 }
