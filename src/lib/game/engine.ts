@@ -75,6 +75,12 @@ export class MatchEngine {
   private remoteInput: Input = { dx: 0, dy: 0, sprint: false, pass: false, shoot: false, tackle: false };
   private localSide: "home" | "away";
   private celebration = 0;
+  private netMode: NetMode = "local";
+  private awayLineup: PlayerCard[] | undefined;
+  private seq = 0;
+  private targets: Array<{ x: number; y: number }> = [];
+  private ballTarget = { x: W / 2, y: H / 2 };
+  private lastSeq = -1;
   input: Input = { dx: 0, dy: 0, sprint: false, pass: false, shoot: false, tackle: false };
 
   constructor(
@@ -85,8 +91,11 @@ export class MatchEngine {
     seconds: number,
     private events: EngineEvents,
     localSide: "home" | "away" = "home",
+    options: { awayLineup?: PlayerCard[]; netMode?: NetMode } = {},
   ) {
     this.localSide = localSide;
+    this.netMode = options.netMode ?? "local";
+    this.awayLineup = options.awayLineup;
     this.canvas = canvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D context unavailable");
@@ -96,7 +105,9 @@ export class MatchEngine {
     this.ball = { x: W / 2, y: H / 2, vx: 0, vy: 0, owner: null, lock: 0 };
     this.buildTeams();
     this.kickoff(true);
+    this.targets = this.actors.map((a) => ({ x: a.x, y: a.y }));
   }
+
 
   private buildTeams() {
     const slots = FORMATIONS[this.formation];
