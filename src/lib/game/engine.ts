@@ -694,7 +694,7 @@ export class MatchEngine {
       ctx.fillStyle = "#e8c39e";
       ctx.fill();
 
-      if (a === this.controlled) {
+      if (a === (this.localSide === "home" ? this.controlled : this.controlledAway)) {
         ctx.strokeStyle = "#f7c948";
         ctx.lineWidth = 3;
         ctx.beginPath();
