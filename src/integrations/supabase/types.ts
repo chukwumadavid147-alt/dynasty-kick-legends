@@ -14,7 +14,147 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      match_rooms: {
+        Row: {
+          code: string
+          created_at: string
+          guest_id: string | null
+          host_club: string
+          host_id: string
+          host_rating: number
+          id: string
+          invited_id: string | null
+          is_public: boolean
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          guest_id?: string | null
+          host_club?: string
+          host_id: string
+          host_rating?: number
+          id?: string
+          invited_id?: string | null
+          is_public?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          guest_id?: string | null
+          host_club?: string
+          host_id?: string
+          host_rating?: number
+          id?: string
+          invited_id?: string | null
+          is_public?: boolean
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      online_matches: {
+        Row: {
+          created_at: string
+          guest_club: string
+          guest_goals: number
+          guest_id: string | null
+          host_club: string
+          host_goals: number
+          host_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          guest_club?: string
+          guest_goals?: number
+          guest_id?: string | null
+          host_club?: string
+          host_goals?: number
+          host_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          guest_club?: string
+          guest_goals?: number
+          guest_id?: string | null
+          host_club?: string
+          host_goals?: number
+          host_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          club: string
+          created_at: string
+          display_name: string
+          draws: number
+          id: string
+          last_seen: string
+          level: number
+          losses: number
+          team_rating: number
+          updated_at: string
+          wins: number
+        }
+        Insert: {
+          club?: string
+          created_at?: string
+          display_name?: string
+          draws?: number
+          id: string
+          last_seen?: string
+          level?: number
+          losses?: number
+          team_rating?: number
+          updated_at?: string
+          wins?: number
+        }
+        Update: {
+          club?: string
+          created_at?: string
+          display_name?: string
+          draws?: number
+          id?: string
+          last_seen?: string
+          level?: number
+          losses?: number
+          team_rating?: number
+          updated_at?: string
+          wins?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
