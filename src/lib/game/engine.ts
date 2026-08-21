@@ -1,5 +1,8 @@
 import { FORMATIONS } from "./data";
 import type { Difficulty, FormationName, PlayerCard } from "./types";
+import { encodeSnapshot, type MatchSnapshot } from "./netcode";
+
+export type NetMode = "local" | "host" | "guest";
 
 export const W = 1050;
 export const H = 680;
@@ -75,6 +78,12 @@ export class MatchEngine {
   private remoteInput: Input = { dx: 0, dy: 0, sprint: false, pass: false, shoot: false, tackle: false };
   private localSide: "home" | "away";
   private celebration = 0;
+  private netMode: NetMode = "local";
+  private awayLineup: PlayerCard[] | undefined;
+  private seq = 0;
+  private targets: Array<{ x: number; y: number }> = [];
+  private ballTarget = { x: W / 2, y: H / 2 };
+  private lastSeq = -1;
   input: Input = { dx: 0, dy: 0, sprint: false, pass: false, shoot: false, tackle: false };
 
   constructor(
@@ -85,8 +94,11 @@ export class MatchEngine {
     seconds: number,
     private events: EngineEvents,
     localSide: "home" | "away" = "home",
+    options: { awayLineup?: PlayerCard[]; netMode?: NetMode } = {},
   ) {
     this.localSide = localSide;
+    this.netMode = options.netMode ?? "local";
+    this.awayLineup = options.awayLineup;
     this.canvas = canvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D context unavailable");
@@ -96,7 +108,9 @@ export class MatchEngine {
     this.ball = { x: W / 2, y: H / 2, vx: 0, vy: 0, owner: null, lock: 0 };
     this.buildTeams();
     this.kickoff(true);
+    this.targets = this.actors.map((a) => ({ x: a.x, y: a.y }));
   }
+
 
   private buildTeams() {
     const slots = FORMATIONS[this.formation];
@@ -125,7 +139,7 @@ export class MatchEngine {
     };
     this.actors = [];
     slots.forEach((s, i) => this.actors.push(mk(s, this.lineup[i], true, i + 1)));
-    slots.forEach((s, i) => this.actors.push(mk(s, undefined, false, i + 1)));
+    slots.forEach((s, i) => this.actors.push(mk(s, this.awayLineup?.[i], false, i + 1)));
   }
 
 
@@ -187,6 +201,18 @@ export class MatchEngine {
   }
 
   private step(dt: number) {
+    if (this.netMode === "guest") {
+      const k = Math.min(1, dt * 14);
+      this.actors.forEach((a, i) => {
+        const t = this.targets[i];
+        if (!t) return;
+        a.x += (t.x - a.x) * k;
+        a.y += (t.y - a.y) * k;
+      });
+      this.ball.x += (this.ballTarget.x - this.ball.x) * k;
+      this.ball.y += (this.ballTarget.y - this.ball.y) * k;
+      return;
+    }
     if (this.celebration > 0) {
       this.celebration -= dt;
       if (this.celebration <= 0) this.kickoff(this.celebration < 0 && Math.random() < 0.5);
@@ -416,6 +442,48 @@ export class MatchEngine {
     this.remoteInput = { ...input };
   }
 
+  /** Host: capture the authoritative pitch state. */
+  snapshot(): MatchSnapshot {
+    const a: number[] = [];
+    for (const actor of this.actors) {
+      a.push(actor.x, actor.y);
+    }
+    return encodeSnapshot({
+      seq: ++this.seq,
+      a,
+      b: [this.ball.x, this.ball.y],
+      c: [this.actors.indexOf(this.controlled as Actor), this.actors.indexOf(this.controlledAway as Actor)],
+      s: [this.home, this.away],
+      t: Math.max(0, this.time),
+      g: this.celebration,
+    });
+  }
+
+  /** Guest: adopt the host state; positions are interpolated toward it. */
+  applySnapshot(snap: MatchSnapshot) {
+    if (snap.seq <= this.lastSeq) return;
+    this.lastSeq = snap.seq;
+    for (let i = 0; i < this.actors.length; i++) {
+      const x = snap.a[i * 2];
+      const y = snap.a[i * 2 + 1];
+      if (x === undefined || y === undefined) continue;
+      const t = this.targets[i];
+      if (t) {
+        t.x = x;
+        t.y = y;
+      } else {
+        this.targets[i] = { x, y };
+      }
+    }
+    this.ballTarget = { x: snap.b[0], y: snap.b[1] };
+    this.controlled = this.actors[snap.c[0]] ?? this.controlled;
+    this.controlledAway = this.actors[snap.c[1]] ?? this.controlledAway;
+    this.home = snap.s[0];
+    this.away = snap.s[1];
+    this.time = snap.t;
+    this.celebration = snap.g;
+  }
+
   private resolveActions() {
     const players = this.localSide === "home"
       ? [[this.controlled, this.input], [this.controlledAway, this.remoteInput]]
@@ -477,6 +545,14 @@ export class MatchEngine {
   }
 
   /* ---------------- rendering ---------------- */
+
+  private mx(x: number) {
+    return this.localSide === "away" ? W - x : x;
+  }
+
+  private my(y: number) {
+    return this.localSide === "away" ? H - y : y;
+  }
 
   private draw() {
     const ctx = this.ctx;
@@ -583,8 +659,10 @@ export class MatchEngine {
 
     // actors — kit-style with shirt + shorts
     for (const a of this.actors) {
+      const ax = this.mx(a.x);
+      const ay = this.my(a.y);
       ctx.beginPath();
-      ctx.ellipse(a.x, a.y + 12, 13, 5, 0, 0, Math.PI * 2);
+      ctx.ellipse(ax, ay + 12, 13, 5, 0, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(0,0,0,0.3)";
       ctx.fill();
 
@@ -600,41 +678,43 @@ export class MatchEngine {
       // shorts
       ctx.fillStyle = shorts;
       ctx.beginPath();
-      ctx.roundRect(a.x - 8, a.y + 1, 16, 11, 3);
+      ctx.roundRect(ax - 8, ay + 1, 16, 11, 3);
       ctx.fill();
       // shirt
       ctx.fillStyle = shirt;
       ctx.beginPath();
-      ctx.roundRect(a.x - 10, a.y - 11, 20, 14, 4);
+      ctx.roundRect(ax - 10, ay - 11, 20, 14, 4);
       ctx.fill();
       ctx.strokeStyle = "rgba(0,0,0,0.35)";
       ctx.lineWidth = 1;
       ctx.stroke();
       // head
       ctx.beginPath();
-      ctx.arc(a.x, a.y - 15, 5, 0, Math.PI * 2);
+      ctx.arc(ax, ay - 15, 5, 0, Math.PI * 2);
       ctx.fillStyle = "#e8c39e";
       ctx.fill();
 
-      if (a === this.controlled) {
+      if (a === (this.localSide === "home" ? this.controlled : this.controlledAway)) {
         ctx.strokeStyle = "#f7c948";
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.ellipse(a.x, a.y + 12, 18, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(ax, ay + 12, 18, 8, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
       ctx.fillStyle = a.home && !a.gk ? "#1b3a8f" : "#0b1220";
       ctx.font = "bold 9px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(String(a.num), a.x, a.y - 4);
+      ctx.fillText(String(a.num), ax, ay - 4);
     }
 
 
     // ball
     const b = this.ball;
+    const bx = this.mx(b.x);
+    const by = this.my(b.y);
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 8, 0, Math.PI * 2);
+    ctx.arc(bx, by, 8, 0, Math.PI * 2);
     ctx.fillStyle = "#ffffff";
     ctx.fill();
     ctx.strokeStyle = "#0b1220";
