@@ -108,6 +108,7 @@ function TeamSheet({
 
 function MatchPage() {
   const game = useGame();
+  const search = Route.useSearch();
   useEffect(() => hydrate(), []);
 
   const [phase, setPhase] = useState<"setup" | "playing" | "done">("setup");
@@ -115,12 +116,13 @@ function MatchPage() {
   const [score, setScore] = useState({ home: 0, away: 0 });
   const [clock, setClock] = useState(game.settings.matchMinutes * 60);
   const [result, setResult] = useState<MatchResult | null>(null);
-  const [mode, setMode] = useState<"offline" | "online">("offline");
-  const [role, setRole] = useState<"host" | "guest">("host");
-  const [roomCode, setRoomCode] = useState("");
+  const [mode, setMode] = useState<"offline" | "online">(search.code ? "online" : "offline");
+  const [role, setRole] = useState<"host" | "guest">(search.role ?? "host");
+  const [roomCode, setRoomCode] = useState(search.code ?? "");
   const [roomStatus, setRoomStatus] = useState("");
+  const [remoteTeam, setRemoteTeam] = useState<TeamPayload | null>(null);
   const roomRef = useRef<MultiplayerRoom | null>(null);
-  const opponent = mode === "online" ? "Online Rival" : nextOpponent(game);
+  const opponent = mode === "online" ? (remoteTeam?.club ?? "Online Rival") : nextOpponent(game);
 
   const pitchIds = useMemo(() => new Set(matchLineup(game).map((p) => p.id)), [game]);
   const homeSheet = useMemo(() => {
@@ -128,9 +130,27 @@ function MatchPage() {
     return [...xi].sort((a, b) => Number(pitchIds.has(b.id)) - Number(pitchIds.has(a.id)));
   }, [game, pitchIds]);
   const awaySheet = useMemo(
-    () => opponentXI(opponent, game.formation, 62 + game.leagueTier * 3),
-    [opponent, game.formation, game.leagueTier],
+    () =>
+      mode === "online"
+        ? (remoteTeam?.lineup ?? [])
+        : opponentXI(opponent, game.formation, 62 + game.leagueTier * 3),
+    [mode, remoteTeam, opponent, game.formation, game.leagueTier],
   );
+
+  // Squad payload we hand to the opponent so they play against our real team.
+  const myTeam = useMemo<TeamPayload>(
+    () => ({
+      name: game.managerName,
+      club: game.club,
+      rating: teamRating(game),
+      lineup: matchLineup(game),
+    }),
+    [game],
+  );
+  const myTeamRef = useRef(myTeam);
+  useEffect(() => {
+    myTeamRef.current = myTeam;
+  }, [myTeam]);
 
 
 
