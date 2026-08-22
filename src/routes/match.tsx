@@ -162,9 +162,21 @@ function MatchPage() {
     if (mode !== "online" || roomCode.length !== 6) return;
     const room = new MultiplayerRoom(role, roomCode);
     roomRef.current = room;
-    const stopStatus = room.onStatus(setRoomStatus);
+    const stopStatus = room.onStatus((status, state) => {
+      setRoomStatus(status);
+      // Exchange team sheets as soon as the peer link opens.
+      if (state === "connected") room.send({ type: "hello", team: myTeamRef.current });
+    });
     const stopMessages = room.onMessage((message) => {
+      if (message.type === "hello") setRemoteTeam(message.team);
       if (message.type === "input") engineRef.current?.setRemoteInput(message.input);
+      if (message.type === "snapshot" && role === "guest") engineRef.current?.applySnapshot(message.snap);
+      if (message.type === "start" && role === "guest") {
+        setScore({ home: 0, away: 0 });
+        setClock(message.seconds);
+        setResult(null);
+        setPhase("playing");
+      }
       if (message.type === "score" && role === "guest") setScore({ home: message.home, away: message.away });
       if (message.type === "clock" && role === "guest") setClock(message.seconds);
       if (message.type === "end" && role === "guest") finishRef.current?.(message.home, message.away);
