@@ -25,6 +25,10 @@ export const Route = createFileRoute("/match")({
       },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    code: typeof search['code'] === "string" ? (search['code'] as string).toUpperCase().slice(0, 6) : undefined,
+    role: search['role'] === "guest" ? ("guest" as const) : search['role'] === "host" ? ("host" as const) : undefined,
+  }),
   component: MatchPage,
 });
 
@@ -104,6 +108,7 @@ function TeamSheet({
 
 function MatchPage() {
   const game = useGame();
+  const search = Route.useSearch();
   useEffect(() => hydrate(), []);
 
   const [phase, setPhase] = useState<"setup" | "playing" | "done">("setup");
@@ -111,12 +116,13 @@ function MatchPage() {
   const [score, setScore] = useState({ home: 0, away: 0 });
   const [clock, setClock] = useState(game.settings.matchMinutes * 60);
   const [result, setResult] = useState<MatchResult | null>(null);
-  const [mode, setMode] = useState<"offline" | "online">("offline");
-  const [role, setRole] = useState<"host" | "guest">("host");
-  const [roomCode, setRoomCode] = useState("");
+  const [mode, setMode] = useState<"offline" | "online">(search.code ? "online" : "offline");
+  const [role, setRole] = useState<"host" | "guest">(search.role ?? "host");
+  const [roomCode, setRoomCode] = useState(search.code ?? "");
   const [roomStatus, setRoomStatus] = useState("");
+  const [remoteTeam, setRemoteTeam] = useState<TeamPayload | null>(null);
   const roomRef = useRef<MultiplayerRoom | null>(null);
-  const opponent = mode === "online" ? "Online Rival" : nextOpponent(game);
+  const opponent = mode === "online" ? (remoteTeam?.club ?? "Online Rival") : nextOpponent(game);
 
   const pitchIds = useMemo(() => new Set(matchLineup(game).map((p) => p.id)), [game]);
   const homeSheet = useMemo(() => {
@@ -124,9 +130,27 @@ function MatchPage() {
     return [...xi].sort((a, b) => Number(pitchIds.has(b.id)) - Number(pitchIds.has(a.id)));
   }, [game, pitchIds]);
   const awaySheet = useMemo(
-    () => opponentXI(opponent, game.formation, 62 + game.leagueTier * 3),
-    [opponent, game.formation, game.leagueTier],
+    () =>
+      mode === "online"
+        ? (remoteTeam?.lineup ?? [])
+        : opponentXI(opponent, game.formation, 62 + game.leagueTier * 3),
+    [mode, remoteTeam, opponent, game.formation, game.leagueTier],
   );
+
+  // Squad payload we hand to the opponent so they play against our real team.
+  const myTeam = useMemo<TeamPayload>(
+    () => ({
+      name: game.managerName,
+      club: game.club,
+      rating: teamRating(game),
+      lineup: matchLineup(game),
+    }),
+    [game],
+  );
+  const myTeamRef = useRef(myTeam);
+  useEffect(() => {
+    myTeamRef.current = myTeam;
+  }, [myTeam]);
 
 
 
@@ -138,9 +162,21 @@ function MatchPage() {
     if (mode !== "online" || roomCode.length !== 6) return;
     const room = new MultiplayerRoom(role, roomCode);
     roomRef.current = room;
-    const stopStatus = room.onStatus(setRoomStatus);
+    const stopStatus = room.onStatus((status, state) => {
+      setRoomStatus(status);
+      // Exchange team sheets as soon as the peer link opens.
+      if (state === "connected") room.send({ type: "hello", team: myTeamRef.current });
+    });
     const stopMessages = room.onMessage((message) => {
+      if (message.type === "hello") setRemoteTeam(message.team);
       if (message.type === "input") engineRef.current?.setRemoteInput(message.input);
+      if (message.type === "snapshot" && role === "guest") engineRef.current?.applySnapshot(message.snap);
+      if (message.type === "start" && role === "guest") {
+        setScore({ home: 0, away: 0 });
+        setClock(message.seconds);
+        setResult(null);
+        setPhase("playing");
+      }
       if (message.type === "score" && role === "guest") setScore({ home: message.home, away: message.away });
       if (message.type === "clock" && role === "guest") setClock(message.seconds);
       if (message.type === "end" && role === "guest") finishRef.current?.(message.home, message.away);

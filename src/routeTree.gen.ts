@@ -10,10 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DynastyRouteImport } from './routes/dynasty'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as LeagueRouteImport } from './routes/league'
 import { Route as MatchRouteImport } from './routes/match'
+import { Route as OnlineRouteImport } from './routes/online'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SquadRouteImport } from './routes/squad'
@@ -24,6 +26,11 @@ import { Route as TransfersRouteImport } from './routes/transfers'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DynastyRoute = DynastyRouteImport.update({
@@ -44,6 +51,11 @@ const LeagueRoute = LeagueRouteImport.update({
 const MatchRoute = MatchRouteImport.update({
   id: '/match',
   path: '/match',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnlineRoute = OnlineRouteImport.update({
+  id: '/online',
+  path: '/online',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -79,10 +91,12 @@ const TransfersRoute = TransfersRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/dynasty': typeof DynastyRoute
   '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/online': typeof OnlineRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
@@ -92,10 +106,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/dynasty': typeof DynastyRoute
   '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/online': typeof OnlineRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
@@ -106,10 +122,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/dynasty': typeof DynastyRoute
   '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/online': typeof OnlineRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
@@ -121,10 +139,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/dynasty'
     | '/events'
     | '/league'
     | '/match'
+    | '/online'
     | '/profile'
     | '/settings'
     | '/squad'
@@ -134,10 +154,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/dynasty'
     | '/events'
     | '/league'
     | '/match'
+    | '/online'
     | '/profile'
     | '/settings'
     | '/squad'
@@ -147,10 +169,12 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/dynasty'
     | '/events'
     | '/league'
     | '/match'
+    | '/online'
     | '/profile'
     | '/settings'
     | '/squad'
@@ -161,10 +185,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   DynastyRoute: typeof DynastyRoute
   EventsRoute: typeof EventsRoute
   LeagueRoute: typeof LeagueRoute
   MatchRoute: typeof MatchRoute
+  OnlineRoute: typeof OnlineRoute
   ProfileRoute: typeof ProfileRoute
   SettingsRoute: typeof SettingsRoute
   SquadRoute: typeof SquadRoute
@@ -180,6 +206,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dynasty': {
@@ -208,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/match'
       fullPath: '/match'
       preLoaderRoute: typeof MatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/online': {
+      id: '/online'
+      path: '/online'
+      fullPath: '/online'
+      preLoaderRoute: typeof OnlineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -257,10 +297,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   DynastyRoute: DynastyRoute,
   EventsRoute: EventsRoute,
   LeagueRoute: LeagueRoute,
   MatchRoute: MatchRoute,
+  OnlineRoute: OnlineRoute,
   ProfileRoute: ProfileRoute,
   SettingsRoute: SettingsRoute,
   SquadRoute: SquadRoute,
