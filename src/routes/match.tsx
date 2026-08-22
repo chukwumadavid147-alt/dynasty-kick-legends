@@ -25,6 +25,10 @@ export const Route = createFileRoute("/match")({
       },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    code: typeof search['code'] === "string" ? (search['code'] as string).toUpperCase().slice(0, 6) : undefined,
+    role: search['role'] === "guest" ? ("guest" as const) : search['role'] === "host" ? ("host" as const) : undefined,
+  }),
   component: MatchPage,
 });
 
