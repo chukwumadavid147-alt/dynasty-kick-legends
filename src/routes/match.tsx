@@ -4,9 +4,9 @@ import { GameShell } from "@/components/game/GameShell";
 import { ActionButton, Joystick } from "@/components/game/TouchControls";
 import { opponentXI, overall } from "@/lib/game/data";
 import { MatchEngine, type Input } from "@/lib/game/engine";
-import { actions, hydrate, lineupPlayers, matchLineup, nextOpponent, useGame } from "@/lib/game/store";
+import { actions, hydrate, lineupPlayers, matchLineup, nextOpponent, teamRating, useGame } from "@/lib/game/store";
 import type { Difficulty, MatchResult, PlayerCard } from "@/lib/game/types";
-import { makeRoomCode, MultiplayerRoom } from "@/lib/game/multiplayer";
+import { makeRoomCode, MultiplayerRoom, type TeamPayload } from "@/lib/game/multiplayer";
 
 
 export const Route = createFileRoute("/match")({

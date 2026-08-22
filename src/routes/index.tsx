@@ -125,6 +125,7 @@ function MainMenu() {
               </dl>
               <Link
                 to="/match"
+                search={{ code: undefined, role: undefined }}
                 className="press mt-6 inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-3 text-sm font-black uppercase tracking-widest text-gold-foreground shadow-[0_10px_35px_-12px_var(--gold)]"
               >
                 Let's play <ChevronRight className="size-4" />

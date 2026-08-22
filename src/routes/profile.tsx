@@ -91,7 +91,7 @@ function ProfilePage() {
           {s.matches === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">
               No matches played yet.{" "}
-              <Link to="/match" className="font-bold text-gold underline">
+              <Link to="/match" search={{ code: undefined, role: undefined }} className="font-bold text-gold underline">
                 Kick off your first game
               </Link>{" "}
               to start your record.

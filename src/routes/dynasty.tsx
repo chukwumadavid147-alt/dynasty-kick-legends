@@ -63,6 +63,7 @@ function DynastyPage() {
           <p className="text-xl font-black text-foreground">{opponent}</p>
           <Link
             to="/match"
+            search={{ code: undefined, role: undefined }}
             className="mt-5 block rounded-xl bg-primary px-4 py-3 text-center text-sm font-black uppercase tracking-widest text-primary-foreground"
           >
             Play match

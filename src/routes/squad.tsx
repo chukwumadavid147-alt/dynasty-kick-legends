@@ -190,6 +190,7 @@ function SquadPage() {
 
           <Link
             to="/match"
+            search={{ code: undefined, role: undefined }}
             className="block rounded-2xl bg-primary px-6 py-4 text-center text-sm font-black uppercase tracking-widest text-primary-foreground"
           >
             Play match
