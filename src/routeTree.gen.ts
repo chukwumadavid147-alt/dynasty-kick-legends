@@ -15,6 +15,7 @@ import { Route as DynastyRouteImport } from './routes/dynasty'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as LeagueRouteImport } from './routes/league'
 import { Route as MatchRouteImport } from './routes/match'
+import { Route as OnlineRouteImport } from './routes/online'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SquadRouteImport } from './routes/squad'
@@ -50,6 +51,11 @@ const LeagueRoute = LeagueRouteImport.update({
 const MatchRoute = MatchRouteImport.update({
   id: '/match',
   path: '/match',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnlineRoute = OnlineRouteImport.update({
+  id: '/online',
+  path: '/online',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/online': typeof OnlineRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/online': typeof OnlineRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/events': typeof EventsRoute
   '/league': typeof LeagueRoute
   '/match': typeof MatchRoute
+  '/online': typeof OnlineRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
   '/squad': typeof SquadRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/league'
     | '/match'
+    | '/online'
     | '/profile'
     | '/settings'
     | '/squad'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/league'
     | '/match'
+    | '/online'
     | '/profile'
     | '/settings'
     | '/squad'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/league'
     | '/match'
+    | '/online'
     | '/profile'
     | '/settings'
     | '/squad'
@@ -178,6 +190,7 @@ export interface RootRouteChildren {
   EventsRoute: typeof EventsRoute
   LeagueRoute: typeof LeagueRoute
   MatchRoute: typeof MatchRoute
+  OnlineRoute: typeof OnlineRoute
   ProfileRoute: typeof ProfileRoute
   SettingsRoute: typeof SettingsRoute
   SquadRoute: typeof SquadRoute
@@ -228,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/match'
       fullPath: '/match'
       preLoaderRoute: typeof MatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/online': {
+      id: '/online'
+      path: '/online'
+      fullPath: '/online'
+      preLoaderRoute: typeof OnlineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -282,6 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   EventsRoute: EventsRoute,
   LeagueRoute: LeagueRoute,
   MatchRoute: MatchRoute,
+  OnlineRoute: OnlineRoute,
   ProfileRoute: ProfileRoute,
   SettingsRoute: SettingsRoute,
   SquadRoute: SquadRoute,

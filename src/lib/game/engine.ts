@@ -478,10 +478,13 @@ export class MatchEngine {
     this.ballTarget = { x: snap.b[0], y: snap.b[1] };
     this.controlled = this.actors[snap.c[0]] ?? this.controlled;
     this.controlledAway = this.actors[snap.c[1]] ?? this.controlledAway;
+    const scoreChanged = this.home !== snap.s[0] || this.away !== snap.s[1];
     this.home = snap.s[0];
     this.away = snap.s[1];
     this.time = snap.t;
     this.celebration = snap.g;
+    if (scoreChanged) this.events.onScore(this.home, this.away);
+    this.events.onClock(this.time);
   }
 
   private resolveActions() {
