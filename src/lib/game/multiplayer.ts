@@ -24,6 +24,8 @@ export type MultiplayerMessage =
   | { type: "start"; seconds: number }
   | { type: "input"; input: NetworkInput }
   | { type: "snapshot"; snap: MatchSnapshot }
+  | { type: "score"; home: number; away: number }
+  | { type: "clock"; seconds: number }
   | { type: "end"; home: number; away: number };
 
 export type MultiplayerRole = "host" | "guest";
