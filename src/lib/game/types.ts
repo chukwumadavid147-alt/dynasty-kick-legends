@@ -171,5 +171,5 @@ export interface MatchResult {
   xp: number;
   opponent: string;
   difficulty: Difficulty;
-  mode: "LEAGUE" | "TOURNAMENT";
+  mode: "LEAGUE" | "TOURNAMENT" | "ONLINE";
 }

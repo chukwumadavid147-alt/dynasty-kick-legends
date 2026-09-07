@@ -13,6 +13,7 @@ import {
   Sparkles,
   User,
   Users,
+  Wifi,
   Zap,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -68,6 +69,7 @@ const NAV = [
   { to: "/league", label: "Tables", icon: ListOrdered },
   { to: "/profile", label: "Profile", icon: User },
   { to: "/store", label: "Store", icon: ShoppingBag },
+  { to: "/online", label: "Online", icon: Wifi },
 ] as const;
 
 function BottomNav() {
@@ -77,7 +79,7 @@ function BottomNav() {
       aria-label="Main"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-background/95 backdrop-blur-lg"
     >
-      <ul className="mx-auto grid w-full max-w-4xl grid-cols-7">
+      <ul className="mx-auto grid w-full max-w-5xl grid-cols-8">
         {NAV.map(({ to, label, icon: Icon }) => {
           const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
           return (

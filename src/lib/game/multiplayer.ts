@@ -1,6 +1,7 @@
 import Peer, { type DataConnection } from "peerjs";
 import type { MatchSnapshot } from "./netcode";
 import type { PlayerCard } from "./types";
+import type { FormationName } from "./types";
 
 export type NetworkInput = {
   dx: number;
@@ -16,6 +17,8 @@ export type TeamPayload = {
   club: string;
   rating: number;
   lineup: PlayerCard[];
+  formation: FormationName;
+  captainId: string | null;
 };
 
 export type MultiplayerMessage =
