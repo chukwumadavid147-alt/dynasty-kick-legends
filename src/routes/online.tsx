@@ -124,6 +124,25 @@ function OnlinePage() {
     else await host(true);
   };
 
+  const joinByCode = async () => {
+    const normalized = joinCode.trim().toUpperCase();
+    if (!user || normalized.length !== 6) return;
+    setBusy(true);
+    setError("");
+    const { data, error: err } = await supabase
+      .from("match_rooms")
+      .select("id, code, host_id, host_club, host_rating, status")
+      .eq("code", normalized)
+      .eq("status", "open")
+      .maybeSingle();
+    if (err || !data) {
+      setBusy(false);
+      setError(err?.message ?? "No open room found for that code.");
+      return;
+    }
+    await join(data as Room);
+  };
+
   if (loading) {
     return (
       <GameShell title="Online" subtitle="Loading…">
@@ -193,7 +212,7 @@ function OnlinePage() {
             />
             <button
               disabled={joinCode.length !== 6}
-              onClick={() => navigate({ to: "/match", search: { code: joinCode, role: "guest" } })}
+              onClick={() => void joinByCode()}
               className="rounded-xl bg-secondary px-4 py-2 text-xs font-black uppercase ring-1 ring-border disabled:opacity-40"
             >
               Connect

@@ -8,6 +8,7 @@ import { actions, hydrate, lineupPlayers, matchLineup, nextOpponent, teamRating,
 import type { Difficulty, MatchResult, PlayerCard } from "@/lib/game/types";
 import { makeRoomCode, MultiplayerRoom, type TeamPayload } from "@/lib/game/multiplayer";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 
 export const Route = createFileRoute("/match")({
@@ -109,6 +110,7 @@ function TeamSheet({
 
 function MatchPage() {
   const game = useGame();
+  const { user } = useAuth();
   const search = Route.useSearch();
   useEffect(() => hydrate(), []);
 
@@ -150,8 +152,9 @@ function MatchPage() {
       pitchLineup: matchLineup(game),
       formation: game.formation,
       captainId: game.captainId,
+      userId: user?.id,
     }),
-    [game],
+    [game, user?.id],
   );
   const myTeamRef = useRef(myTeam);
   useEffect(() => {
@@ -292,7 +295,8 @@ function MatchPage() {
       },
       mode === "online" && role === "guest" ? "away" : "home",
       {
-        awayLineup: role === "guest" ? matchLineup(game) : remoteTeam?.pitchLineup,
+        ...(role === "guest" && { awayLineup: matchLineup(game) }),
+        ...(role === "host" && remoteTeam?.pitchLineup && { awayLineup: remoteTeam.pitchLineup }),
         netMode: mode === "online" ? role : "local",
       },
     );
