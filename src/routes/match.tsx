@@ -7,6 +7,7 @@ import { MatchEngine, type Input } from "@/lib/game/engine";
 import { actions, hydrate, lineupPlayers, matchLineup, nextOpponent, teamRating, useGame } from "@/lib/game/store";
 import type { Difficulty, MatchResult, PlayerCard } from "@/lib/game/types";
 import { makeRoomCode, MultiplayerRoom, type TeamPayload } from "@/lib/game/multiplayer";
+import { supabase } from "@/integrations/supabase/client";
 
 
 export const Route = createFileRoute("/match")({
@@ -121,7 +122,9 @@ function MatchPage() {
   const [roomCode, setRoomCode] = useState(search.code ?? "");
   const [roomStatus, setRoomStatus] = useState("");
   const [remoteTeam, setRemoteTeam] = useState<TeamPayload | null>(null);
+  const [remoteReady, setRemoteReady] = useState(false);
   const roomRef = useRef<MultiplayerRoom | null>(null);
+  const resultSavedRef = useRef(false);
   const opponent = mode === "online" ? (remoteTeam?.club ?? "Online Rival") : nextOpponent(game);
 
   const pitchIds = useMemo(() => new Set(matchLineup(game).map((p) => p.id)), [game]);
@@ -143,7 +146,10 @@ function MatchPage() {
       name: game.managerName,
       club: game.club,
       rating: teamRating(game),
-      lineup: matchLineup(game),
+      lineup: lineupPlayers(game),
+      pitchLineup: matchLineup(game),
+      formation: game.formation,
+      captainId: game.captainId,
     }),
     [game],
   );
@@ -168,7 +174,11 @@ function MatchPage() {
       if (state === "connected") room.send({ type: "hello", team: myTeamRef.current });
     });
     const stopMessages = room.onMessage((message) => {
-      if (message.type === "hello") setRemoteTeam(message.team);
+      if (message.type === "hello") {
+        setRemoteTeam(message.team);
+        room.send({ type: "ready" });
+      }
+      if (message.type === "ready") setRemoteReady(true);
       if (message.type === "input") engineRef.current?.setRemoteInput(message.input);
       if (message.type === "snapshot" && role === "guest") engineRef.current?.applySnapshot(message.snap);
       if (message.type === "start" && role === "guest") {
@@ -177,9 +187,9 @@ function MatchPage() {
         setResult(null);
         setPhase("playing");
       }
-      if (message.type === "score" && role === "guest") setScore({ home: message.home, away: message.away });
+      if (message.type === "score" && role === "guest") setScore({ home: message.away, away: message.home });
       if (message.type === "clock" && role === "guest") setClock(message.seconds);
-      if (message.type === "end" && role === "guest") finishRef.current?.(message.home, message.away);
+      if (message.type === "end" && role === "guest") finishRef.current?.(message.away, message.home);
     });
     room.connect();
     return () => {
@@ -187,6 +197,7 @@ function MatchPage() {
       stopMessages();
       room.close();
       roomRef.current = null;
+      setRemoteReady(false);
     };
   }, [mode, role, roomCode]);
 
@@ -208,15 +219,42 @@ function MatchPage() {
         xp,
         opponent,
         difficulty,
-        mode: "LEAGUE",
+        mode: mode === "online" ? "ONLINE" : game.nextMatchMode,
       };
       setResult(res);
       setPhase("done");
-      actions.recordMatch(res);
-      if (mode === "online" && role === "host") roomRef.current?.send({ type: "end", home, away });
+      if (mode === "online") {
+        actions.recordOnlineMatch(res);
+        if (role === "host") {
+          roomRef.current?.send({ type: "end", home, away });
+          void saveOnlineResult(home, away);
+        }
+      } else {
+        actions.recordMatch(res);
+      }
     },
-    [difficulty, mode, opponent, role],
+    [difficulty, game.nextMatchMode, mode, opponent, role],
   );
+
+  const saveOnlineResult = useCallback(async (home: number, away: number) => {
+    if (resultSavedRef.current || !remoteTeam || role !== "host") return;
+    resultSavedRef.current = true;
+    const { data } = await supabase.auth.getUser();
+    if (!data.user || !remoteTeam.userId) return;
+    await supabase.from("online_matches").insert({
+      host_id: data.user.id,
+      guest_id: remoteTeam.userId,
+      host_club: game.club,
+      guest_club: remoteTeam.club,
+      host_goals: home,
+      guest_goals: away,
+    });
+    await supabase
+      .from("match_rooms")
+      .update({ status: "finished", updated_at: new Date().toISOString() })
+      .eq("code", roomCode)
+      .eq("host_id", data.user.id);
+  }, [game.club, remoteTeam, role, roomCode]);
 
   useEffect(() => {
     finishRef.current = finish;
@@ -235,15 +273,15 @@ function MatchPage() {
     resize();
     window.addEventListener("resize", resize);
 
-    const engine = new MatchEngine(
+      const engine = new MatchEngine(
       canvas,
-      matchLineup(game),
-      game.formation,
+        role === "guest" && remoteTeam ? remoteTeam.pitchLineup : matchLineup(game),
+        role === "guest" && remoteTeam ? remoteTeam.formation : game.formation,
       difficulty,
       game.settings.matchMinutes * 60,
       {
         onScore: (h, a) => {
-          setScore({ home: h, away: a });
+          setScore(role === "guest" ? { home: a, away: h } : { home: h, away: a });
           if (mode === "online" && role === "host") roomRef.current?.send({ type: "score", home: h, away: a });
         },
         onClock: (s) => {
@@ -253,9 +291,20 @@ function MatchPage() {
         onEnd: (h, a) => finish(h, a),
       },
       mode === "online" && role === "guest" ? "away" : "home",
+      {
+        awayLineup: role === "guest" ? matchLineup(game) : remoteTeam?.pitchLineup,
+        netMode: mode === "online" ? role : "local",
+      },
     );
     engineRef.current = engine;
     engine.start();
+
+    const snapshotTimer = mode === "online" && role === "host"
+      ? window.setInterval(() => {
+          const current = engineRef.current;
+          if (current) roomRef.current?.send({ type: "snapshot", snap: current.snapshot() });
+        }, 1000 / 20)
+      : undefined;
 
     const applyKeys = () => {
       const k = keys.current;
@@ -283,13 +332,14 @@ function MatchPage() {
 
     return () => {
       engine.stop();
+      if (snapshotTimer !== undefined) window.clearInterval(snapshotTimer);
       engineRef.current = null;
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, difficulty, mode, role]);
+  }, [phase, difficulty, game, mode, remoteTeam, role]);
 
   const joystick = useCallback((dx: number, dy: number) => {
     const e = engineRef.current;
@@ -308,10 +358,14 @@ function MatchPage() {
   }, []);
 
   const startMatch = () => {
+    if (mode === "online" && role === "guest") return;
     setScore({ home: 0, away: 0 });
     setClock(game.settings.matchMinutes * 60);
     setResult(null);
     setPhase("playing");
+    if (mode === "online" && role === "host") {
+      roomRef.current?.send({ type: "start", seconds: game.settings.matchMinutes * 60 });
+    }
   };
 
   if (phase === "setup") {
@@ -378,12 +432,12 @@ function MatchPage() {
             <p>Mobile: joystick to move, buttons for pass, shoot, tackle and sprint</p>
           </div>
 
-          <button
+           <button
             onClick={startMatch}
-            disabled={mode === "online" && !roomStatus.includes("Connected")}
+             disabled={mode === "online" && (!roomStatus.includes("Connected") || !remoteTeam || (role === "host" && !remoteReady) || role === "guest")}
             className="mt-6 w-full rounded-2xl bg-primary px-6 py-4 text-base font-black uppercase tracking-widest text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {mode === "online" ? "Start online match" : "Start match"}
+             {mode === "online" ? (role === "guest" ? "Waiting for host" : "Start online match") : "Start match"}
           </button>
         </div>
       </GameShell>
