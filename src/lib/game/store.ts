@@ -615,7 +615,7 @@ export const actions = {
   recordMatch(result: MatchResult) {
     setState((s) => {
       const isCup = result.mode === "TOURNAMENT" && s.tournament.active;
-      const table = isCup ? s.table : simulateRound(s.table, s.club, result);
+      const table = isCup || result.mode === "ONLINE" ? s.table : simulateRound(s.table, s.club, result);
       const xi = new Set(lineupPlayers(s).map((p) => p.id));
       const moraleShift = result.outcome === "WIN" ? 8 : result.outcome === "DRAW" ? 1 : -7;
       const recovery = 10 + s.staff.physio * 2;
@@ -722,6 +722,53 @@ export const actions = {
           s,
           `${result.outcome} ${result.scored}–${result.conceded} vs ${result.opponent}.`,
         ),
+      };
+    });
+  },
+
+  /** Record an online result without changing offline league or tournament progress. */
+  recordOnlineMatch(result: MatchResult) {
+    setState((s) => {
+      const xi = new Set(lineupPlayers(s).map((p) => p.id));
+      const moraleShift = result.outcome === "WIN" ? 8 : result.outcome === "DRAW" ? 1 : -7;
+      const recovery = 10 + s.staff.physio * 2;
+      const squad = s.squad.map((p) => {
+        const clampF = (v: number) => Math.max(35, Math.min(100, Math.round(v)));
+        const morale = Math.max(10, Math.min(100, p.morale + moraleShift));
+        if (!xi.has(p.id)) return { ...p, morale, fitness: clampF(p.fitness + recovery) };
+        const fitness = clampF(p.fitness - Math.max(6, 16 - (p.stamina - 60) * 0.12));
+        const xp = p.xp + result.xp + s.staff.coach * 2;
+        const levels = Math.floor(xp / 100);
+        return {
+          ...p,
+          xp: xp % 100,
+          fitness,
+          morale,
+          level: p.level + levels,
+          shooting: Math.min(99, p.shooting + levels),
+          passing: Math.min(99, p.passing + levels),
+          defense: Math.min(99, p.defense + levels),
+        };
+      });
+      const stats = {
+        ...s.stats,
+        matches: s.stats.matches + 1,
+        wins: s.stats.wins + (result.outcome === "WIN" ? 1 : 0),
+        draws: s.stats.draws + (result.outcome === "DRAW" ? 1 : 0),
+        losses: s.stats.losses + (result.outcome === "LOSS" ? 1 : 0),
+        goalsFor: s.stats.goalsFor + result.scored,
+        goalsAgainst: s.stats.goalsAgainst + result.conceded,
+        cleanSheets: s.stats.cleanSheets + (result.conceded === 0 ? 1 : 0),
+      };
+      return {
+        ...s,
+        coins: s.coins + result.coins,
+        squad,
+        stats,
+        lastResult: result,
+        managerLevel: addManagerXp(s, result.xp).managerLevel,
+        managerXp: addManagerXp(s, result.xp).managerXp,
+        notifications: notify(s, `Online result: ${result.outcome.toLowerCase()} against ${result.opponent}.`),
       };
     });
   },
